@@ -7,87 +7,52 @@ namespace SPTarkov.Server.Core.Models.Eft.Match;
 
 public record StartLocalRaidResponseData
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("serverId")]
-    public string? ServerId
-    {
-        get;
-        set;
-    }
+    public string? ServerId { get; set; }
 
     [JsonPropertyName("serverSettings")]
-    public LocationServices? ServerSettings
-    {
-        get;
-        set;
-    }
+    public LocationServices? ServerSettings { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("profile")]
-    public ProfileInsuredItems? Profile
-    {
-        get;
-        set;
-    }
+    public ProfileInsuredItems? Profile { get; set; }
 
     [JsonPropertyName("locationLoot")]
-    public LocationBase? LocationLoot
-    {
-        get;
-        set;
-    }
+    public LocationBase? LocationLoot { get; set; }
 
     [JsonPropertyName("transitionType")]
-    public TransitionType? TransitionType
-    {
-        get;
-        set;
-    }
+    public TransitionType? TransitionType { get; set; }
 
     [JsonPropertyName("transition")]
-    public Transition? Transition
-    {
-        get;
-        set;
-    }
+    public Transition? Transition { get; set; }
 }
 
 public record ProfileInsuredItems
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("insuredItems")]
-    public List<InsuredItem>? InsuredItems
-    {
-        get;
-        set;
-    }
+    public List<InsuredItem>? InsuredItems { get; set; }
 }
 
 public record Transition
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("transitionType")]
-    public TransitionType? TransitionType
-    {
-        get;
-        set;
-    }
+    public TransitionType? TransitionType { get; set; }
 
     [JsonPropertyName("transitionRaidId")]
-    public string? TransitionRaidId
-    {
-        get;
-        set;
-    }
+    public string? TransitionRaidId { get; set; }
 
     [JsonPropertyName("transitionCount")]
-    public int? TransitionCount
-    {
-        get;
-        set;
-    }
+    public int? TransitionCount { get; set; }
 
     [JsonPropertyName("visitedLocations")]
-    public List<string>? VisitedLocations
-    {
-        get;
-        set;
-    }
+    public List<string>? VisitedLocations { get; set; }
 }

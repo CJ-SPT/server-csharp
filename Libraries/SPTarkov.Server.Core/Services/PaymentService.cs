@@ -19,7 +19,6 @@ public class PaymentService(
     ISptLogger<PaymentService> _logger,
     HashUtil _hashUtil,
     HttpResponseUtil _httpResponseUtil,
-    DatabaseService _databaseService,
     HandbookHelper _handbookHelper,
     TraderHelper _traderHelper,
     ItemHelper _itemHelper,
@@ -38,7 +37,12 @@ public class PaymentService(
     /// <param name="request"> Buy item request </param>
     /// <param name="sessionID"> Session ID </param>
     /// <param name="output"> Client response </param>
-    public void PayMoney(PmcData pmcData, ProcessBuyTradeRequestData request, string sessionID, ItemEventRouterResponse output)
+    public void PayMoney(
+        PmcData pmcData,
+        ProcessBuyTradeRequestData request,
+        string sessionID,
+        ItemEventRouterResponse output
+    )
     {
         // May need to convert to trader currency
         var trader = _traderHelper.GetTrader(request.TransactionId, sessionID);
@@ -60,7 +64,7 @@ public class PaymentService(
                     _inventoryHelper.RemoveItemByCount(
                         pmcData,
                         item.Id,
-                        (int) itemRequest.Count,
+                        (int)itemRequest.Count,
                         sessionID,
                         output
                     );
@@ -159,7 +163,10 @@ public class PaymentService(
     /// <returns> Handbook rouble price of the item </returns>
     private double? GetTraderItemHandbookPriceRouble(string? traderAssortId, string traderId)
     {
-        var purchasedAssortItem = _traderHelper.GetTraderAssortItemByAssortId(traderId, traderAssortId);
+        var purchasedAssortItem = _traderHelper.GetTraderAssortItemByAssortId(
+            traderId,
+            traderAssortId
+        );
         if (purchasedAssortItem is null)
         {
             return 1;
@@ -168,7 +175,9 @@ public class PaymentService(
         var assortItemPriceRouble = _handbookHelper.GetTemplatePrice(purchasedAssortItem.Template);
         if (assortItemPriceRouble == 0)
         {
-            _logger.Debug($"No item price found for {purchasedAssortItem.Template} on trader: {traderId} in assort: {traderAssortId}");
+            _logger.Debug(
+                $"No item price found for {purchasedAssortItem.Template} on trader: {traderId} in assort: {traderAssortId}"
+            );
 
             return 1;
         }
@@ -184,23 +193,35 @@ public class PaymentService(
     /// <param name="request"> Sell Trade request data </param>
     /// <param name="output"> Client response </param>
     /// <param name="sessionID"> Session ID </param>
-    public void GiveProfileMoney(PmcData pmcData, double? amountToSend, ProcessSellTradeRequestData request,
-        ItemEventRouterResponse output, string sessionID)
+    public void GiveProfileMoney(
+        PmcData pmcData,
+        double? amountToSend,
+        ProcessSellTradeRequestData request,
+        ItemEventRouterResponse output,
+        string sessionID
+    )
     {
         var trader = _traderHelper.GetTrader(request.TransactionId, sessionID);
         if (trader is null)
         {
-            _logger.Error($"Unable to add currency to profile as trader: {request.TransactionId} does not exist");
+            _logger.Error(
+                $"Unable to add currency to profile as trader: {request.TransactionId} does not exist"
+            );
 
             return;
         }
 
         var currencyTpl = _paymentHelper.GetCurrency(trader.Currency);
-        var calcAmount = _handbookHelper.FromRUB(_handbookHelper.InRUB(amountToSend ?? 0, currencyTpl), currencyTpl);
+        var calcAmount = _handbookHelper.FromRUB(
+            _handbookHelper.InRUB(amountToSend ?? 0, currencyTpl),
+            currencyTpl
+        );
         var currencyMaxStackSize = _itemHelper.GetItem(currencyTpl).Value.Properties?.StackMaxSize;
         if (currencyMaxStackSize is null)
         {
-            _logger.Error($"Unable to add currency: {currencyTpl} to profile as it lacks a _props property");
+            _logger.Error(
+                $"Unable to add currency: {currencyTpl} to profile as it lacks a _props property"
+            );
 
             return;
         }
@@ -227,7 +248,7 @@ public class PaymentService(
                 if (item.Upd.StackObjectsCount + calcAmount > currencyMaxStackSize)
                 {
                     // calculate difference
-                    calcAmount -= (int) (currencyMaxStackSize - item.Upd.StackObjectsCount ?? 0);
+                    calcAmount -= (int)(currencyMaxStackSize - item.Upd.StackObjectsCount ?? 0);
                     item.Upd.StackObjectsCount = currencyMaxStackSize;
                 }
                 else
@@ -251,10 +272,7 @@ public class PaymentService(
         {
             Id = _hashUtil.Generate(),
             Template = currencyTpl,
-            Upd = new Upd
-            {
-                StackObjectsCount = Math.Round(calcAmount)
-            }
+            Upd = new Upd { StackObjectsCount = Math.Round(calcAmount) },
         };
 
         // Ensure money is properly split to follow its max stack size limit
@@ -267,7 +285,7 @@ public class PaymentService(
                 ItemsWithModsToAdd = rewards,
                 FoundInRaid = false,
                 Callback = null,
-                UseSortingTable = true
+                UseSortingTable = true,
             };
             _inventoryHelper.AddItemsToStash(sessionID, addItemToStashRequest, pmcData, output);
         }
@@ -304,10 +322,7 @@ public class PaymentService(
         //Ensure all money items found have a upd
         foreach (var moneyStack in moneyItemsInInventory)
         {
-            moneyStack.Upd ??= new Upd
-            {
-                StackObjectsCount = 1
-            };
+            moneyStack.Upd ??= new Upd { StackObjectsCount = 1 };
         }
 
         var amountAvailable = moneyItemsInInventory.Aggregate(
@@ -321,16 +336,15 @@ public class PaymentService(
             _logger.Error(
                 _localisationService.GetText(
                     "payment-not_enough_money_to_complete_transation", // Typo, needs locale updated if fixed
-                    new
-                    {
-                        amountToPay,
-                        amountAvailable
-                    }
+                    new { amountToPay, amountAvailable }
                 )
             );
             _httpResponseUtil.AppendErrorToOutput(
                 output,
-                _localisationService.GetText("payment-not_enough_money_to_complete_transation_short", amountToPay), // Typo, needs locale updated if fixed
+                _localisationService.GetText(
+                    "payment-not_enough_money_to_complete_transation_short",
+                    amountToPay
+                ), // Typo, needs locale updated if fixed
                 BackendErrorCodes.UnknownTradingError
             );
 
@@ -361,99 +375,209 @@ public class PaymentService(
     }
 
     /// <summary>
-    ///     Get all money stacks in inventory and prioritise items in stash
+    /// Get all money stacks in inventory and prioritise items in stash
+    /// Ignore locked stacks
+    /// Prioritise the lowest sized stack
     /// </summary>
     /// <param name="pmcData"> Player profile </param>
     /// <param name="currencyTpl"> Currency to find </param>
     /// <param name="playerStashId"> Players stash ID </param>
     /// <returns> List of sorted money items </returns>
     // TODO - ensure money in containers inside secure container are LAST
-    protected List<Item> GetSortedMoneyItemsInInventory(PmcData pmcData, string currencyTpl, string playerStashId)
+    protected List<Item> GetSortedMoneyItemsInInventory(
+        PmcData pmcData,
+        string currencyTpl,
+        string playerStashId
+    )
     {
-        var moneyItemsInInventory = _itemHelper.FindBarterItems("tpl", pmcData.Inventory.Items, currencyTpl);
+        // Get money stacks player has
+        var moneyItemsInInventory = _itemHelper.FindBarterItems(
+            "tpl",
+            pmcData.Inventory.Items,
+            currencyTpl
+        );
         if (moneyItemsInInventory.Count == 0)
         {
             _logger.Debug($"No {currencyTpl} money items found in inventory");
+
+            return moneyItemsInInventory;
+        }
+
+        // Create a cache inventory items with a bool of being in stash or not
+        var itemsInStashCache = GetItemInStashCache(pmcData.Inventory.Items, playerStashId);
+
+        // Filter out 'Locked' money stacks as they cannot be used
+        var noLocked = moneyItemsInInventory.Where(moneyItem =>
+            moneyItem.Upd.PinLockState != PinLockState.Locked
+        );
+        if (noLocked.Any())
+        {
+            // We found unlocked money
+            moneyItemsInInventory = noLocked.ToList();
         }
 
         // Prioritise items in stash to top of array
-        moneyItemsInInventory.Sort((a, b) => PrioritiseStashSort(a, b, pmcData.Inventory.Items, playerStashId));
+        moneyItemsInInventory.Sort(
+            (a, b) => PrioritiseStashSort(a, b, pmcData.Inventory.Items, itemsInStashCache)
+        );
 
         return moneyItemsInInventory;
     }
 
     /// <summary>
-    ///     Prioritise player stash first over player inventory.
-    ///     Post-raid healing would often take money out of the players pockets/secure container.
+    /// Create a dictionary of all items from player inventory that are in the players stash
+    /// </summary>
+    /// <param name="items">Inventory items to check</param>
+    /// <param name="playerStashId">Id of players stash</param>
+    /// <returns>Dictionary</returns>
+    protected IReadOnlyDictionary<string, InventoryLocation> GetItemInStashCache(
+        List<Item> items,
+        string playerStashId
+    )
+    {
+        var itemsInStashCache = new Dictionary<string, InventoryLocation>();
+        foreach (var inventoryItem in items)
+        {
+            itemsInStashCache.TryAdd(
+                inventoryItem.Id,
+                GetItemLocation(inventoryItem.Id, items, playerStashId)
+            );
+        }
+
+        return itemsInStashCache;
+    }
+
+    /// <summary>
+    /// Get stacks of money from player inventory, ordered by priority to use from
+    /// Post-raid healing would often take money out of the players pockets/secure container.
+    /// Return money stacks in root of stash first, with the smallest stacks taking priority
+    /// Stacks inside secure are returned last
     /// </summary>
     /// <param name="a"> First money stack item </param>
     /// <param name="b"> Second money stack item </param>
-    /// <param name="inventoryItems"> Players inventory items </param>
-    /// <param name="playerStashId"> Players stash ID </param>
-    /// <returns> Sort order, -1 if in a, 1 if in b, 0 if they match </returns>
-    protected int PrioritiseStashSort(Item a, Item b, List<Item> inventoryItems, string playerStashId)
+    /// <param name="inventoryItems"> Players inventory items</param>
+    /// <param name="itemInStashCache">Cache of item IDs and if they're in stash</param>
+    /// <returns> Sort order, -1 if A has priority, 1 if B has priority, 0 if they match </returns>
+    protected int PrioritiseStashSort(
+        Item a,
+        Item b,
+        List<Item> inventoryItems,
+        IReadOnlyDictionary<string, InventoryLocation> itemInStashCache
+    )
     {
-        // a in root of stash, prioritise
-        if (a.ParentId == playerStashId && b.ParentId != playerStashId)
-        {
-            return -1;
-        }
+        // Get the location of A and B
+        itemInStashCache.TryGetValue(a.Id, out var aLocation);
+        itemInStashCache.TryGetValue(b.Id, out var bLocation);
 
-        // b in root stash, prioritise
-        if (a.ParentId != playerStashId && b.ParentId == playerStashId)
-        {
-            return 1;
-        }
+        // Helper fields
+        var aInStash = aLocation == InventoryLocation.Stash;
+        var bInStash = bLocation == InventoryLocation.Stash;
+        var aInSecure = aLocation == InventoryLocation.Secure;
+        var bInSecure = bLocation == InventoryLocation.Secure;
+        var onlyAInStash = aInStash && !bInStash;
+        var onlyBInStash = !aInStash && bInStash;
+        var bothInStash = aInStash && bInStash;
 
-        // both in containers
-        if (a.SlotId == "main" && b.SlotId == "main")
+        if (bothInStash)
         {
-            // Both items are in containers
-            var aInStash = IsInStash(a.ParentId, inventoryItems, playerStashId);
-            var bInStash = IsInStash(b.ParentId, inventoryItems, playerStashId);
+            // Determine if they're in containers
+            var aInContainer = string.Equals(
+                a.SlotId,
+                "main",
+                StringComparison.InvariantCultureIgnoreCase
+            );
+            var bInContainer = string.Equals(
+                b.SlotId,
+                "main",
+                StringComparison.InvariantCultureIgnoreCase
+            );
 
-            // a in stash in container, prioritise
-            if (aInStash && !bInStash)
+            // Return item not in container
+            var compare = aInContainer.CompareTo(bInContainer);
+            if (compare != 0)
             {
-                return -1;
+                return compare;
             }
 
-            // b in stash in container, prioritise
-            if (!aInStash && bInStash)
+            // Both in containers, deprioritized item in 'bad' container
+            if (aInContainer && bInContainer)
             {
-                return 1;
-            }
-
-            // Both in stash in containers
-            if (aInStash && bInStash)
-            {
-                // Containers where taking money from would inconvinence player
-                var deprioritisedContainers = _inventoryConfig.DeprioritisedMoneyContainers;
+                // Containers where taking money from would inconvenience player
                 var aImmediateParent = inventoryItems.FirstOrDefault(item => item.Id == a.ParentId);
                 var bImmediateParent = inventoryItems.FirstOrDefault(item => item.Id == b.ParentId);
 
-                // A is not a deprioritised container, B is
-                if (
-                    !deprioritisedContainers.Contains(aImmediateParent.Template) &&
-                    deprioritisedContainers.Contains(bImmediateParent.Template)
-                )
+                var aInDeprioContainer = _inventoryConfig.DeprioritisedMoneyContainers.Contains(
+                    aImmediateParent.Template
+                );
+                var bInDeprioContainer = _inventoryConfig.DeprioritisedMoneyContainers.Contains(
+                    bImmediateParent.Template
+                );
+
+                // Prioritize B
+                if (!aInDeprioContainer && bInDeprioContainer)
                 {
                     return -1;
                 }
 
-                // B is not a deprioritised container, A is
-                if (
-                    deprioritisedContainers.Contains(aImmediateParent.Template) &&
-                    !deprioritisedContainers.Contains(bImmediateParent.Template)
-                )
+                // Prioritize A
+                if (aInDeprioContainer && !bInDeprioContainer)
                 {
                     return 1;
                 }
+
+                // Both in bad containers, fall out of IF and run GetPriorityBySmallestStackSize
             }
+
+            return GetPriorityBySmallestStackSize(a, b);
         }
 
-        // they match
+        // Prioritise A
+        if (onlyAInStash)
+        {
+            return -1;
+        }
+
+        // Prioritise B
+        if (onlyBInStash)
+        {
+            return 1;
+        }
+
+        // A in secure, B not, prioritise B
+        if (aInSecure && !bInSecure)
+        {
+            return 1;
+        }
+
+        // B in secure, A not, prioritise A
+        if (!aInSecure && bInSecure)
+        {
+            return -1;
+        }
+
+        // Both in secure
+        if (aInSecure && bInSecure)
+        {
+            return 0;
+        }
+
+        // They match / we don't know
         return 0;
+    }
+
+    /// <summary>
+    /// Get priority of items based on their stack size
+    /// Smallest stack size has priority
+    /// </summary>
+    /// <param name="a">Item A</param>
+    /// <param name="b">Item B</param>
+    /// <returns>-1 = a, 1 = b, 0 = same</returns>
+    protected static int GetPriorityBySmallestStackSize(Item a, Item b)
+    {
+        var aStackSize = a.Upd?.StackObjectsCount ?? 1;
+        var bStackSize = b.Upd?.StackObjectsCount ?? 1;
+
+        return aStackSize.CompareTo(bStackSize);
     }
 
     /// <summary>
@@ -463,25 +587,44 @@ public class PaymentService(
     /// <param name="inventoryItems"> Player inventory </param>
     /// <param name="playerStashId"> Players stash ID </param>
     /// <returns> True if it's in inventory </returns>
-    protected bool IsInStash(string itemId, List<Item> inventoryItems, string playerStashId)
+    protected InventoryLocation GetItemLocation(
+        string itemId,
+        List<Item> inventoryItems,
+        string playerStashId
+    )
     {
-        var itemParent = inventoryItems.FirstOrDefault(item => item.Id == itemId);
-
-        if (itemParent is not null)
+        var inventoryItem = inventoryItems.FirstOrDefault(item => item.Id == itemId);
+        if (inventoryItem is null)
         {
-            if (itemParent.SlotId == "hideout")
-            {
-                return true;
-            }
-
-            if (itemParent.Id == playerStashId)
-            {
-                return true;
-            }
-
-            return IsInStash(itemParent.ParentId, inventoryItems, playerStashId);
+            // Doesn't exist
+            return InventoryLocation.Other;
         }
 
-        return false;
+        // is root item and its parent is the player stash
+        if (inventoryItem.Id == playerStashId)
+        {
+            return InventoryLocation.Stash;
+        }
+
+        // is child item and its parent is a root item
+        if (inventoryItem.SlotId == "hideout")
+        {
+            return InventoryLocation.Stash;
+        }
+
+        if (inventoryItem.SlotId == "SecuredContainer")
+        {
+            return InventoryLocation.Secure;
+        }
+
+        // Recursive call for parentId
+        return GetItemLocation(inventoryItem.ParentId, inventoryItems, playerStashId);
+    }
+
+    protected enum InventoryLocation
+    {
+        Other = 0,
+        Stash = 1,
+        Secure = 2,
     }
 }

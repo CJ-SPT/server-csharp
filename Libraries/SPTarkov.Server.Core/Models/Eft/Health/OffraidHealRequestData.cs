@@ -5,33 +5,20 @@ namespace SPTarkov.Server.Core.Models.Eft.Health;
 
 public record OffraidHealRequestData : InventoryBaseActionRequestData
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("item")]
-    public string? Item
-    {
-        get;
-        set;
-    }
+    public string? Item { get; set; }
 
     [JsonPropertyName("part")]
-    public string? Part
-    {
-        get;
-        set;
-    }
+    public string? Part { get; set; }
 
     [JsonPropertyName("count")]
-    public int? Count
-    {
-        get;
-        set;
-    }
+    public int? Count { get; set; }
 
     [JsonPropertyName("time")]
-    public long? Time
-    {
-        get;
-        set;
-    }
+    public long? Time { get; set; }
 }
 
 public enum BodyPart
@@ -43,5 +30,5 @@ public enum BodyPart
     RightArm,
     LeftLeg,
     RightLeg,
-    Common
+    Common,
 }

@@ -4,26 +4,17 @@ namespace SPTarkov.Server.Core.Models.Spt.Config;
 
 public record BotDurability
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("default")]
-    public DefaultDurability Default
-    {
-        get;
-        set;
-    }
+    public required DefaultDurability Default { get; set; }
 
     [JsonPropertyName("botDurabilities")]
-    public Dictionary<string, DefaultDurability> BotDurabilities
-    {
-        get;
-        set;
-    }
+    public required Dictionary<string, DefaultDurability> BotDurabilities { get; set; }
 
     [JsonPropertyName("pmc")]
-    public PmcDurability Pmc
-    {
-        get;
-        set;
-    }
+    public required PmcDurability Pmc { get; set; }
 }
 
 /// <summary>
@@ -31,148 +22,87 @@ public record BotDurability
 /// </summary>
 public record DefaultDurability
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("armor")]
-    public ArmorDurability Armor
-    {
-        get;
-        set;
-    }
+    public required ArmorDurability Armor { get; set; }
 
     [JsonPropertyName("weapon")]
-    public WeaponDurability Weapon
-    {
-        get;
-        set;
-    }
+    public required WeaponDurability Weapon { get; set; }
 }
 
 public record PmcDurability
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("armor")]
-    public PmcDurabilityArmor Armor
-    {
-        get;
-        set;
-    }
+    public required PmcDurabilityArmor Armor { get; set; }
 
     [JsonPropertyName("weapon")]
-    public WeaponDurability Weapon
-    {
-        get;
-        set;
-    }
+    public required WeaponDurability Weapon { get; set; }
 }
 
 public record PmcDurabilityArmor
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("lowestMaxPercent")]
-    public int LowestMaxPercent
-    {
-        get;
-        set;
-    }
+    public int LowestMaxPercent { get; set; }
 
     [JsonPropertyName("highestMaxPercent")]
-    public int HighestMaxPercent
-    {
-        get;
-        set;
-    }
+    public int HighestMaxPercent { get; set; }
 
     [JsonPropertyName("maxDelta")]
-    public int MaxDelta
-    {
-        get;
-        set;
-    }
+    public int MaxDelta { get; set; }
 
     [JsonPropertyName("minDelta")]
-    public int MinDelta
-    {
-        get;
-        set;
-    }
+    public int MinDelta { get; set; }
 
     [JsonPropertyName("minLimitPercent")]
-    public int MinLimitPercent
-    {
-        get;
-        set;
-    }
+    public int MinLimitPercent { get; set; }
 }
 
 public record ArmorDurability
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("maxDelta")]
-    public int MaxDelta
-    {
-        get;
-        set;
-    }
+    public int MaxDelta { get; set; }
 
     [JsonPropertyName("minDelta")]
-    public int MinDelta
-    {
-        get;
-        set;
-    }
+    public int MinDelta { get; set; }
 
     [JsonPropertyName("minLimitPercent")]
-    public int MinLimitPercent
-    {
-        get;
-        set;
-    }
+    public int MinLimitPercent { get; set; }
 
     [JsonPropertyName("lowestMaxPercent")]
-    public int LowestMaxPercent
-    {
-        get;
-        set;
-    }
+    public int LowestMaxPercent { get; set; }
 
     [JsonPropertyName("highestMaxPercent")]
-    public int HighestMaxPercent
-    {
-        get;
-        set;
-    }
+    public int HighestMaxPercent { get; set; }
 }
 
 public record WeaponDurability
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("lowestMax")]
-    public int LowestMax
-    {
-        get;
-        set;
-    }
+    public int LowestMax { get; set; }
 
     [JsonPropertyName("highestMax")]
-    public int HighestMax
-    {
-        get;
-        set;
-    }
+    public int HighestMax { get; set; }
 
     [JsonPropertyName("maxDelta")]
-    public int MaxDelta
-    {
-        get;
-        set;
-    }
+    public int MaxDelta { get; set; }
 
     [JsonPropertyName("minDelta")]
-    public int MinDelta
-    {
-        get;
-        set;
-    }
+    public int MinDelta { get; set; }
 
     [JsonPropertyName("minLimitPercent")]
-    public double MinLimitPercent
-    {
-        get;
-        set;
-    }
+    public double MinLimitPercent { get; set; }
 }

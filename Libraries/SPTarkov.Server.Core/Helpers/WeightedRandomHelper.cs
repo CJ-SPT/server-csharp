@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Spt.Helper;
 using SPTarkov.Server.Core.Models.Utils;
+using SPTarkov.Server.Core.Services;
 using SPTarkov.Server.Core.Utils;
 
 namespace SPTarkov.Server.Core.Helpers;
@@ -8,6 +9,7 @@ namespace SPTarkov.Server.Core.Helpers;
 [Injectable]
 public class WeightedRandomHelper(
     ISptLogger<WeightedRandomHelper> _logger,
+    LocalisationService localisationService,
     RandomUtil _randomUtil
 )
 {
@@ -16,7 +18,8 @@ public class WeightedRandomHelper(
     /// </summary>
     /// <param name="values">Items and weights to use</param>
     /// <returns>Chosen item from array</returns>
-    public T GetWeightedValue<T>(Dictionary<T, double> values) where T : notnull
+    public T GetWeightedValue<T>(Dictionary<T, double> values)
+        where T : notnull
     {
         if (values.Count == 1)
         {
@@ -47,17 +50,24 @@ public class WeightedRandomHelper(
     {
         if (items.Count == 0)
         {
-            _logger.Error("Items must not be empty");
+            _logger.Error(localisationService.GetText("weightedrandomhelper-supplied_items_empty"));
         }
 
         if (weights.Count == 0)
         {
-            _logger.Error("Item weights must not be empty");
+            _logger.Error(
+                localisationService.GetText("weightedrandomhelper-supplied_weights_empty")
+            );
         }
 
         if (items.Count != weights.Count)
         {
-            _logger.Error("Items and weight inputs must be of the same length");
+            _logger.Error(
+                localisationService.GetText(
+                    "weightedrandomhelper-supplied_data_doesnt_match",
+                    new { itemCount = items.Count, weightCount = weights.Count }
+                )
+            );
         }
 
         // Preparing the cumulative weights list.
@@ -79,11 +89,7 @@ public class WeightedRandomHelper(
         {
             // Weights are all the same, early exit
             var randomIndex = _randomUtil.GetInt(0, items.Count - 1);
-            return new WeightedRandomResult<T>
-            {
-                Item = items[randomIndex],
-                Index = randomIndex
-            };
+            return new WeightedRandomResult<T> { Item = items[randomIndex], Index = randomIndex };
         }
 
         // Getting the random number in a range of [0...sum(weights)]
@@ -94,11 +100,7 @@ public class WeightedRandomHelper(
         {
             if (cumulativeWeights[itemIndex] >= randomNumber)
             {
-                return new WeightedRandomResult<T>
-                {
-                    Item = items[itemIndex],
-                    Index = itemIndex
-                };
+                return new WeightedRandomResult<T> { Item = items[itemIndex], Index = itemIndex };
             }
         }
 

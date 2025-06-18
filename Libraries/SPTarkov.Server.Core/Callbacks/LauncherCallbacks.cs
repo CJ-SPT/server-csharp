@@ -26,10 +26,10 @@ public class LauncherCallbacks(
         return new ValueTask<string>(output ?? "FAILED");
     }
 
-    public ValueTask<string> Register(string url, RegisterData info, string sessionID)
+    public async ValueTask<string> Register(string url, RegisterData info, string sessionID)
     {
-        var output = _launcherController.Register(info);
-        return new ValueTask<string>(string.IsNullOrEmpty(output) ? "FAILED" : "OK");
+        var output = await _launcherController.Register(info);
+        return string.IsNullOrEmpty(output) ? "FAILED" : "OK";
     }
 
     public ValueTask<string> Get(string url, LoginRequestData info, string sessionID)
@@ -68,21 +68,33 @@ public class LauncherCallbacks(
 
     public ValueTask<string> RemoveProfile(string url, RemoveProfileData info, string sessionID)
     {
-        return new ValueTask<string>(_httpResponseUtil.NoBody(_saveServer.RemoveProfile(sessionID)));
+        return new ValueTask<string>(
+            _httpResponseUtil.NoBody(_saveServer.RemoveProfile(sessionID))
+        );
     }
 
     public ValueTask<string> GetCompatibleTarkovVersion()
     {
-        return new ValueTask<string>(_httpResponseUtil.NoBody(_launcherController.GetCompatibleTarkovVersion()));
+        return new ValueTask<string>(
+            _httpResponseUtil.NoBody(_launcherController.GetCompatibleTarkovVersion())
+        );
     }
 
     public ValueTask<string> GetLoadedServerMods()
     {
-        return new ValueTask<string>(_httpResponseUtil.NoBody(_launcherController.GetLoadedServerMods()));
+        return new ValueTask<string>(
+            _httpResponseUtil.NoBody(_launcherController.GetLoadedServerMods())
+        );
     }
 
-    public ValueTask<string> GetServerModsProfileUsed(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetServerModsProfileUsed(
+        string url,
+        EmptyRequestData _,
+        string sessionID
+    )
     {
-        return new ValueTask<string>(_httpResponseUtil.NoBody(_launcherController.GetServerModsProfileUsed(sessionID)));
+        return new ValueTask<string>(
+            _httpResponseUtil.NoBody(_launcherController.GetServerModsProfileUsed(sessionID))
+        );
     }
 }

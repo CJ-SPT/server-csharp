@@ -1,7 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace SPTarkov.Server.Core.Models.Enums;
 
 public record HideoutEventActions
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     public const string HIDEOUT_UPGRADE = "HideoutUpgrade";
     public const string HIDEOUT_UPGRADE_COMPLETE = "HideoutUpgradeComplete";
     public const string HIDEOUT_PUT_ITEMS_IN_AREA_SLOTS = "HideoutPutItemsInAreaSlots";
@@ -14,8 +19,10 @@ public record HideoutEventActions
     public const string HIDEOUT_RECORD_SHOOTING_RANGE_POINTS = "RecordShootingRangePoints";
     public const string HIDEOUT_IMPROVE_AREA = "HideoutImproveArea";
     public const string HIDEOUT_CANCEL_PRODUCTION_COMMAND = "HideoutCancelProductionCommand";
-    public const string HIDEOUT_CIRCLE_OF_CULTIST_PRODUCTION_START = "HideoutCircleOfCultistProductionStart";
+    public const string HIDEOUT_CIRCLE_OF_CULTIST_PRODUCTION_START =
+        "HideoutCircleOfCultistProductionStart";
     public const string HIDEOUT_DELETE_PRODUCTION_COMMAND = "HideoutDeleteProductionCommand";
     public const string HIDEOUT_CUSTOMIZATION_APPLY_COMMAND = "HideoutCustomizationApply";
-    public const string HIDEOUT_CUSTOMIZATION_SET_MANNEQUIN_POSE = "HideoutCustomizationSetMannequinPose";
+    public const string HIDEOUT_CUSTOMIZATION_SET_MANNEQUIN_POSE =
+        "HideoutCustomizationSetMannequinPose";
 }

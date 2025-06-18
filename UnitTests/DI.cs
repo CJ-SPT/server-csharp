@@ -7,33 +7,36 @@ using UnitTests.Mock;
 
 namespace UnitTests;
 
+[TestClass]
 public class DI
 {
     private static IServiceProvider _serviceProvider;
 
-    private static IServiceProvider ConfigureServices()
+    [AssemblyInitialize]
+    public static void ConfigureServices(TestContext context)
     {
         if (_serviceProvider != null)
         {
-            return _serviceProvider;
+            return;
         }
 
         var services = new ServiceCollection();
-        var jsonUtil = new JsonUtil([ new SptJsonConverterRegistrator() ]);
+        var jsonUtil = new JsonUtil([new SptJsonConverterRegistrator()]);
         var mathUtil = new MathUtil();
 
         services.AddSingleton<JsonUtil>(jsonUtil);
         services.AddSingleton<MathUtil>(mathUtil);
-        services.AddSingleton<ICloner,JsonCloner>();
-        services.AddSingleton<ISptLogger<RandomUtil>,MockLogger<RandomUtil>>();
+        services.AddSingleton<ICloner, JsonCloner>();
+        services.AddSingleton<ISptLogger<RandomUtil>, MockLogger<RandomUtil>>();
         services.AddSingleton<RandomUtil>();
         services.AddSingleton<HashUtil>();
 
-        return _serviceProvider = services.BuildServiceProvider();
+        _serviceProvider = services.BuildServiceProvider();
     }
 
-    public static T GetService<T>() where T : notnull
+    public static T GetService<T>()
+        where T : notnull
     {
-        return ConfigureServices().GetRequiredService<T>();
+        return _serviceProvider.GetRequiredService<T>();
     }
 }

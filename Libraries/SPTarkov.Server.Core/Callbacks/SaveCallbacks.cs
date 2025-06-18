@@ -11,25 +11,26 @@ public class SaveCallbacks(
     SaveServer _saveServer,
     ConfigServer _configServer,
     BackupService _backupService
-)
-    : IOnLoad, IOnUpdate
+) : IOnLoad, IOnUpdate
 {
     private readonly CoreConfig _coreConfig = _configServer.GetConfig<CoreConfig>();
 
     public async Task OnLoad()
     {
         _backupService.StartBackupSystem();
-        _saveServer.Load();
+        await _saveServer.LoadAsync();
     }
 
-    public bool OnUpdate(long timeSinceLastRun)
+    public async Task<bool> OnUpdate(long secondsSinceLastRun)
     {
-        if (timeSinceLastRun > _coreConfig.ProfileSaveIntervalInSeconds)
+        if (secondsSinceLastRun < _coreConfig.ProfileSaveIntervalInSeconds)
         {
-            _saveServer.Save();
-            return true;
+            // Not enough time has passed since last run, exit early
+            return false;
         }
 
-        return false;
+        await _saveServer.SaveAsync();
+
+        return true;
     }
 }

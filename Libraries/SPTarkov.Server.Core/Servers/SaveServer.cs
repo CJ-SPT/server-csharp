@@ -26,7 +26,8 @@ public class SaveServer(
     protected const string profileFilepath = "user/profiles/";
 
     // onLoad = require("../bindings/SaveLoad");
-    protected readonly Dictionary<string, Func<SptProfile, SptProfile>> onBeforeSaveCallbacks = new();
+    protected readonly Dictionary<string, Func<SptProfile, SptProfile>> onBeforeSaveCallbacks =
+        new();
 
     protected ConcurrentDictionary<string, SptProfile> profiles = new();
     protected ConcurrentDictionary<string, string> saveMd5 = new();
@@ -56,7 +57,7 @@ public class SaveServer(
     /// <summary>
     ///     Load all profiles in /user/profiles folder into memory (this.profiles)
     /// </summary>
-    public void Load()
+    public async Task LoadAsync()
     {
         // get files to load
         if (!_fileUtil.DirectoryExists(profileFilepath))
@@ -64,32 +65,36 @@ public class SaveServer(
             _fileUtil.CreateDirectory(profileFilepath);
         }
 
-        var files = _fileUtil.GetFiles(profileFilepath).Where(item => _fileUtil.GetFileExtension(item) == "json");
+        var files = _fileUtil
+            .GetFiles(profileFilepath)
+            .Where(item => _fileUtil.GetFileExtension(item) == "json");
 
         // load profiles
         var stopwatch = Stopwatch.StartNew();
         foreach (var file in files)
         {
-            LoadProfile(_fileUtil.StripExtension(file));
+            await LoadProfileAsync(_fileUtil.StripExtension(file));
         }
 
         stopwatch.Stop();
         if (_logger.IsLogEnabled(LogLevel.Debug))
         {
-            _logger.Debug($"{files.Count()} Profiles took: {stopwatch.ElapsedMilliseconds}ms to load.");
+            _logger.Debug(
+                $"{files.Count()} Profiles took: {stopwatch.ElapsedMilliseconds}ms to load."
+            );
         }
     }
 
     /// <summary>
     ///     Save changes for each profile from memory into user/profiles json
     /// </summary>
-    public void Save()
+    public async Task SaveAsync()
     {
         // Save every profile
         var totalTime = 0L;
         foreach (var sessionID in profiles)
         {
-            totalTime += SaveProfile(sessionID.Key);
+            totalTime += await SaveProfileAsync(sessionID.Key);
         }
 
         if (_logger.IsLogEnabled(LogLevel.Debug))
@@ -108,7 +113,9 @@ public class SaveServer(
     {
         if (string.IsNullOrEmpty(sessionId))
         {
-            throw new Exception("session id provided was empty, did you restart the server while the game was running?");
+            throw new Exception(
+                "session id provided was empty, did you restart the server while the game was running?"
+            );
         }
 
         if (profiles == null || profiles.Count == 0)
@@ -176,8 +183,8 @@ public class SaveServer(
                 CharacterData = new Characters
                 {
                     PmcData = new PmcData(),
-                    ScavData = new PmcData()
-                }
+                    ScavData = new PmcData(),
+                },
             }
         );
     }
@@ -196,19 +203,18 @@ public class SaveServer(
     ///     Execute saveLoadRouters callbacks after being loaded into memory.
     /// </summary>
     /// <param name="sessionID"> ID of profile to store in memory </param>
-    public void LoadProfile(string sessionID)
+    public async Task LoadProfileAsync(string sessionID)
     {
         var filename = $"{sessionID}.json";
         var filePath = $"{profileFilepath}{filename}";
         if (_fileUtil.FileExists(filePath))
-            // File found, store in profiles[]
+        // File found, store in profiles[]
         {
-            profiles[sessionID] = _jsonUtil.DeserializeFromFile<SptProfile>(filePath);
+            profiles[sessionID] = await _jsonUtil.DeserializeFromFileAsync<SptProfile>(filePath);
         }
 
         // Run callbacks
-        foreach (var callback in
-                 _saveLoadRouters) // HealthSaveLoadRouter, InraidSaveLoadRouter, InsuranceSaveLoadRouter, ProfileSaveLoadRouter. THESE SHOULD EXIST IN HERE
+        foreach (var callback in _saveLoadRouters) // HealthSaveLoadRouter, InraidSaveLoadRouter, InsuranceSaveLoadRouter, ProfileSaveLoadRouter. THESE SHOULD EXIST IN HERE
         {
             profiles[sessionID] = callback.HandleLoad(GetProfile(sessionID));
         }
@@ -220,7 +226,7 @@ public class SaveServer(
     /// </summary>
     /// <param name="sessionID"> Profile id (user/profiles/id.json) </param>
     /// <returns> Time taken to save the profile in seconds </returns>
-    public long SaveProfile(string sessionID)
+    public async Task<long> SaveProfileAsync(string sessionID)
     {
         var filePath = $"{profileFilepath}{sessionID}.json";
 
@@ -237,11 +243,7 @@ public class SaveServer(
                 _logger.Error(
                     _localisationService.GetText(
                         "profile_save_callback_error",
-                        new
-                        {
-                            callback,
-                            error = e
-                        }
+                        new { callback, error = e }
                     )
                 );
                 profiles[sessionID] = previous;
@@ -249,13 +251,16 @@ public class SaveServer(
         }
 
         var start = Stopwatch.StartNew();
-        var jsonProfile = _jsonUtil.Serialize(profiles[sessionID], !_configServer.GetConfig<CoreConfig>().Features.CompressProfile);
-        var fmd5 = _hashUtil.GenerateMd5ForData(jsonProfile);
+        var jsonProfile = _jsonUtil.Serialize(
+            profiles[sessionID],
+            !_configServer.GetConfig<CoreConfig>().Features.CompressProfile
+        );
+        var fmd5 = await _hashUtil.GenerateHashForDataAsync(HashingAlgorithm.MD5, jsonProfile);
         if (!saveMd5.TryGetValue(sessionID, out var currentMd5) || currentMd5 != fmd5)
         {
             saveMd5[sessionID] = fmd5;
             // save profile to disk
-            _fileUtil.WriteFile(filePath, jsonProfile);
+            await _fileUtil.WriteFileAsync(filePath, jsonProfile);
         }
 
         start.Stop();
@@ -277,7 +282,6 @@ public class SaveServer(
             {
                 _logger.Error($"Unable to delete file, not found: {file}");
             }
-
         }
 
         return !_fileUtil.FileExists(file);

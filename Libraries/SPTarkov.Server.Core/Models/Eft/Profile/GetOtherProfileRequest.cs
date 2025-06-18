@@ -5,10 +5,9 @@ namespace SPTarkov.Server.Core.Models.Eft.Profile;
 
 public record GetOtherProfileRequest : IRequestData
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("accountId")]
-    public string? AccountId
-    {
-        get;
-        set;
-    }
+    public string? AccountId { get; set; }
 }

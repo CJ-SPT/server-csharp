@@ -18,13 +18,12 @@ public class RagfairAssortGenerator(
     PresetHelper presetHelper,
     SeasonalEventService seasonalEventService,
     ConfigServer configServer,
-    ICloner _cloner
+    ICloner cloner
 )
 {
-    protected List<List<Item>> generatedAssortItems = [];
-    protected RagfairConfig ragfairConfig = configServer.GetConfig<RagfairConfig>();
+    protected readonly RagfairConfig RagfairConfig = configServer.GetConfig<RagfairConfig>();
 
-    protected List<string> ragfairItemInvalidBaseTypes =
+    protected readonly List<string> RagfairItemInvalidBaseTypes =
     [
         BaseClasses.LOOT_CONTAINER, // Safe, barrel cache etc
         BaseClasses.STASH, // Player inventory stash
@@ -32,7 +31,7 @@ public class RagfairAssortGenerator(
         BaseClasses.INVENTORY,
         BaseClasses.STATIONARY_CONTAINER,
         BaseClasses.POCKETS,
-        BaseClasses.BUILT_IN_INSERTS
+        BaseClasses.BUILT_IN_INSERTS,
     ];
 
     /// <summary>
@@ -42,21 +41,7 @@ public class RagfairAssortGenerator(
     /// <returns> List with children lists of items </returns>
     public List<List<Item>> GetAssortItems()
     {
-        if (!AssortsAreGenerated())
-        {
-            generatedAssortItems = GenerateRagfairAssortItems();
-        }
-
-        return generatedAssortItems;
-    }
-
-    /// <summary>
-    ///     Check if internal generatedAssortItems list has objects
-    /// </summary>
-    /// <returns> True if array has objects </returns>
-    protected bool AssortsAreGenerated()
-    {
-        return generatedAssortItems.Count > 0;
+        return GenerateRagfairAssortItems();
     }
 
     /// <summary>
@@ -68,7 +53,9 @@ public class RagfairAssortGenerator(
         List<List<Item>> results = [];
 
         // Get cloned items from db
-        var dbItemsClone = itemHelper.GetItems().Where(item => !string.Equals(item.Type, "Node", StringComparison.OrdinalIgnoreCase));
+        var dbItemsClone = itemHelper
+            .GetItems()
+            .Where(item => !string.Equals(item.Type, "Node", StringComparison.OrdinalIgnoreCase));
 
         // Store processed preset tpls so we don't add them when processing non-preset items
         HashSet<string> processedArmorItems = [];
@@ -79,7 +66,7 @@ public class RagfairAssortGenerator(
         foreach (var preset in presets)
         {
             // Update Ids and clone
-            var presetAndMods = itemHelper.ReplaceIDs(_cloner.Clone(preset.Items));
+            var presetAndMods = itemHelper.ReplaceIDs(cloner.Clone(preset.Items));
             itemHelper.RemapRootItemId(presetAndMods);
 
             // Add presets base item tpl to the processed list so its skipped later on when processing items
@@ -91,7 +78,7 @@ public class RagfairAssortGenerator(
             {
                 StackObjectsCount = 99999999,
                 UnlimitedCount = true,
-                SptPresetId = preset.Id
+                SptPresetId = preset.Id,
             };
 
             results.Add(presetAndMods);
@@ -99,31 +86,28 @@ public class RagfairAssortGenerator(
 
         foreach (var item in dbItemsClone)
         {
-            if (!itemHelper.IsValidItem(item.Id, ragfairItemInvalidBaseTypes))
+            if (!itemHelper.IsValidItem(item.Id, RagfairItemInvalidBaseTypes))
             {
                 continue;
             }
 
             // Skip seasonal items when not in-season
             if (
-                ragfairConfig.Dynamic.RemoveSeasonalItemsWhenNotInEvent &&
-                !seasonalEventActive &&
-                seasonalItemTplBlacklist.Contains(item.Id)
+                RagfairConfig.Dynamic.RemoveSeasonalItemsWhenNotInEvent
+                && !seasonalEventActive
+                && seasonalItemTplBlacklist.Contains(item.Id)
             )
             {
                 continue;
             }
 
             if (processedArmorItems.Contains(item.Id))
-                // Already processed
+            // Already processed
             {
                 continue;
             }
 
-            var ragfairAssort = CreateRagfairAssortRootItem(
-                item.Id,
-                item.Id
-            ); // tplid and id must be the same so hideout recipe rewards work
+            var ragfairAssort = CreateRagfairAssortRootItem(item.Id, item.Id); // tpl and id must be the same so hideout recipe rewards work
 
             results.Add([ragfairAssort]);
         }
@@ -138,7 +122,7 @@ public class RagfairAssortGenerator(
     /// <returns> List of Preset </returns>
     protected List<Preset> GetPresetsToAdd()
     {
-        return ragfairConfig.Dynamic.ShowDefaultPresetsOnly
+        return RagfairConfig.Dynamic.ShowDefaultPresetsOnly
             ? presetHelper.GetDefaultPresets().Values.ToList()
             : presetHelper.GetAllPresets();
     }
@@ -162,11 +146,7 @@ public class RagfairAssortGenerator(
             Template = tplId,
             ParentId = "hideout",
             SlotId = "hideout",
-            Upd = new Upd
-            {
-                StackObjectsCount = 99999999,
-                UnlimitedCount = true
-            }
+            Upd = new Upd { StackObjectsCount = 99999999, UnlimitedCount = true },
         };
     }
 }

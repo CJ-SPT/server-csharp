@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Linq.Expressions;
 using System.Reflection;
 using SPTarkov.DI.Annotations;
@@ -9,19 +10,31 @@ namespace SPTarkov.Server.Core.Utils;
 [Injectable(InjectionType.Singleton)]
 public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, JsonUtil _jsonUtil)
 {
-    protected HashSet<string> directoriesToIgnore = ["./Assets/database/locales/server"];
-
-    protected HashSet<string> filesToIgnore = ["bearsuits.json", "usecsuits.json", "archivedquests.json"];
+    private readonly FrozenSet<string> _directoriesToIgnore =
+    [
+        "./SPT_Data/database/locales/server",
+    ];
+    private readonly FrozenSet<string> _filesToIgnore =
+    [
+        "bearsuits.json",
+        "usecsuits.json",
+        "archivedquests.json",
+    ];
 
     public async Task<T> LoadRecursiveAsync<T>(
         string filePath,
-        Action<string>? onReadCallback = null,
-        Action<string, object>? onObjectDeserialized = null
+        Func<string, Task>? onReadCallback = null,
+        Func<string, object, Task>? onObjectDeserialized = null
     )
     {
-        var result = await LoadRecursiveAsync(filePath, typeof(T), onReadCallback, onObjectDeserialized);
+        var result = await LoadRecursiveAsync(
+            filePath,
+            typeof(T),
+            onReadCallback,
+            onObjectDeserialized
+        );
 
-        return (T) result;
+        return (T)result;
     }
 
     /// <summary>
@@ -35,8 +48,8 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
     protected async Task<object> LoadRecursiveAsync(
         string filePath,
         Type loadedType,
-        Action<string>? onReadCallback = null,
-        Action<string, object>? onObjectDeserialized = null
+        Func<string, Task>? onReadCallback = null,
+        Func<string, object, Task>? onObjectDeserialized = null
     )
     {
         var tasks = new List<Task>();
@@ -50,23 +63,44 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
         // Process files
         foreach (var file in files)
         {
-            if (_fileUtil.GetFileExtension(file) != "json" || filesToIgnore.Contains(_fileUtil.GetFileNameAndExtension(file).ToLower()))
+            if (
+                _fileUtil.GetFileExtension(file) != "json"
+                || _filesToIgnore.Contains(_fileUtil.GetFileNameAndExtension(file).ToLower())
+            )
             {
                 continue;
             }
 
-            tasks.Add(ProcessFileAsync(file, loadedType, onReadCallback, onObjectDeserialized, result, dictionaryLock));
+            tasks.Add(
+                ProcessFileAsync(
+                    file,
+                    loadedType,
+                    onReadCallback,
+                    onObjectDeserialized,
+                    result,
+                    dictionaryLock
+                )
+            );
         }
 
         // Process directories
         foreach (var directory in directories)
         {
-            if (directoriesToIgnore.Contains(directory))
+            if (_directoriesToIgnore.Contains(directory))
             {
                 continue;
             }
 
-            tasks.Add(ProcessDirectoryAsync(directory, loadedType, result, dictionaryLock));
+            tasks.Add(
+                ProcessDirectoryAsync(
+                    directory,
+                    loadedType,
+                    result,
+                    onReadCallback,
+                    onObjectDeserialized,
+                    dictionaryLock
+                )
+            );
         }
 
         // Wait for all tasks to finish
@@ -78,15 +112,18 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
     private async Task ProcessFileAsync(
         string file,
         Type loadedType,
-        Action<string>? onReadCallback,
-        Action<string, object>? onObjectDeserialized,
+        Func<string, Task>? onReadCallback,
+        Func<string, object, Task>? onObjectDeserialized,
         object result,
         Lock dictionaryLock
     )
     {
         try
         {
-            onReadCallback?.Invoke(file);
+            if (onReadCallback != null)
+            {
+                await onReadCallback(file);
+            }
 
             // Get the set method to update the object
             var setMethod = GetSetMethod(
@@ -98,7 +135,10 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
 
             var fileDeserialized = await DeserializeFileAsync(file, propertyType);
 
-            onObjectDeserialized?.Invoke(file, fileDeserialized);
+            if (onObjectDeserialized != null)
+            {
+                await onObjectDeserialized(file, fileDeserialized);
+            }
 
             lock (dictionaryLock)
             {
@@ -120,6 +160,8 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
         string directory,
         Type loadedType,
         object result,
+        Func<string, Task>? onReadCallback,
+        Func<string, object, Task>? onObjectDeserialized,
         Lock dictionaryLock
     )
     {
@@ -132,11 +174,19 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
                 out var isDictionary
             );
 
-            var loadedData = await LoadRecursiveAsync($"{directory}/", matchedProperty);
+            var loadedData = await LoadRecursiveAsync(
+                $"{directory}/",
+                matchedProperty,
+                onReadCallback,
+                onObjectDeserialized
+            );
 
             lock (dictionaryLock)
             {
-                setMethod.Invoke(result, isDictionary ? [directory, loadedData] : new[] { loadedData });
+                setMethod.Invoke(
+                    result,
+                    isDictionary ? [directory, loadedData] : new[] { loadedData }
+                );
             }
         }
         catch (Exception ex)
@@ -147,7 +197,10 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
 
     private async Task<object> DeserializeFileAsync(string file, Type propertyType)
     {
-        if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(LazyLoad<>))
+        if (
+            propertyType.IsGenericType
+            && propertyType.GetGenericTypeDefinition() == typeof(LazyLoad<>)
+        )
         {
             return CreateLazyLoadDeserialization(file, propertyType);
         }
@@ -179,7 +232,12 @@ public class ImporterUtil(ISptLogger<ImporterUtil> _logger, FileUtil _fileUtil, 
         return Activator.CreateInstance(propertyType, expressionDelegate);
     }
 
-    public MethodInfo GetSetMethod(string propertyName, Type type, out Type propertyType, out bool isDictionary)
+    public MethodInfo GetSetMethod(
+        string propertyName,
+        Type type,
+        out Type propertyType,
+        out bool isDictionary
+    )
     {
         MethodInfo setMethod;
         isDictionary = false;

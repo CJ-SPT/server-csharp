@@ -102,6 +102,8 @@ public class PostDbLoadService(
 
         RemoveNewBeginningRequirementFromPrestige();
 
+        RemovePraporTestMessage();
+
         ValidateQuestAssortUnlocksExist();
 
         if (_seasonalEventService.IsAutomaticEventDetectionEnabled())
@@ -155,7 +157,7 @@ public class PostDbLoadService(
         {
             if (achievements.Exists(a => a.Id == customAchievement.Id))
             {
-                _logger.Warning(
+                _logger.Debug(
                     $"Unable to add custom achievement as id: {customAchievement.Id} already exists"
                 );
                 continue;
@@ -188,6 +190,19 @@ public class PostDbLoadService(
             {
                 prestige.Conditions.RemoveAt(indexToRemove);
             }
+        }
+    }
+
+    private void RemovePraporTestMessage()
+    {
+        foreach ((var locale, var lazyLoad) in _databaseService.GetLocales().Global)
+        {
+            lazyLoad.AddTransformer(lazyloadedData =>
+            {
+                lazyloadedData["61687e2c3e526901fa76baf9"] = "";
+
+                return lazyloadedData;
+            });
         }
     }
 
@@ -264,34 +279,47 @@ public class PostDbLoadService(
                 continue;
             }
 
-            var mapLooseLoot = _databaseService.GetLocation(mapId).LooseLoot.Value;
-            if (mapLooseLoot is null)
-            {
-                _logger.Warning(
-                    _localisationService.GetText("location-map_has_no_loose_loot_data", mapId)
-                );
-
-                continue;
-            }
-
-            foreach (var positionToAdd in positionsToAdd)
-            {
-                // Exists already, add new items to existing positions pool
-                var existingLootPosition = mapLooseLoot.Spawnpoints.FirstOrDefault(x =>
-                    x.Template.Id == positionToAdd.Template.Id
-                );
-
-                if (existingLootPosition is not null)
+            _databaseService
+                .GetLocation(mapId)
+                .LooseLoot.AddTransformer(looselootData =>
                 {
-                    existingLootPosition.Template.Items.AddRange(positionToAdd.Template.Items);
-                    existingLootPosition.ItemDistribution.AddRange(positionToAdd.ItemDistribution);
+                    if (looselootData is null)
+                    {
+                        _logger.Warning(
+                            _localisationService.GetText(
+                                "location-map_has_no_loose_loot_data",
+                                mapId
+                            )
+                        );
 
-                    continue;
-                }
+                        return looselootData;
+                    }
 
-                // New position, add entire object
-                mapLooseLoot.Spawnpoints.Add(positionToAdd);
-            }
+                    foreach (var positionToAdd in positionsToAdd)
+                    {
+                        // Exists already, add new items to existing positions pool
+                        var existingLootPosition = looselootData.Spawnpoints.FirstOrDefault(x =>
+                            x.Template.Id == positionToAdd.Template.Id
+                        );
+
+                        if (existingLootPosition is not null)
+                        {
+                            existingLootPosition.Template.Items.AddRange(
+                                positionToAdd.Template.Items
+                            );
+                            existingLootPosition.ItemDistribution.AddRange(
+                                positionToAdd.ItemDistribution
+                            );
+
+                            continue;
+                        }
+
+                        // New position, add entire object
+                        looselootData.Spawnpoints.Add(positionToAdd);
+                    }
+
+                    return looselootData;
+                });
         }
     }
 
@@ -396,35 +424,44 @@ public class PostDbLoadService(
 
         foreach (var (mapId, mapAdjustments) in _lootConfig.LooseLootSpawnPointAdjustments)
         {
-            var mapLooseLootData = _databaseService.GetLocation(mapId).LooseLoot.Value;
-            if (mapLooseLootData is null)
-            {
-                _logger.Warning(
-                    _localisationService.GetText("location-map_has_no_loose_loot_data", mapId)
-                );
-
-                continue;
-            }
-
-            foreach (var (lootKey, newChanceValue) in mapAdjustments)
-            {
-                var lootPostionToAdjust = mapLooseLootData.Spawnpoints.FirstOrDefault(spawnPoint =>
-                    spawnPoint.Template.Id == lootKey
-                );
-                if (lootPostionToAdjust is null)
+            _databaseService
+                .GetLocation(mapId)
+                .LooseLoot.AddTransformer(looselootData =>
                 {
-                    _logger.Warning(
-                        _localisationService.GetText(
-                            "location-unable_to_adjust_loot_position_on_map",
-                            new { lootKey, mapId }
-                        )
-                    );
+                    if (looselootData is null)
+                    {
+                        _logger.Warning(
+                            _localisationService.GetText(
+                                "location-map_has_no_loose_loot_data",
+                                mapId
+                            )
+                        );
 
-                    continue;
-                }
+                        return looselootData;
+                    }
 
-                lootPostionToAdjust.Probability = newChanceValue;
-            }
+                    foreach (var (lootKey, newChanceValue) in mapAdjustments)
+                    {
+                        var lootPostionToAdjust = looselootData.Spawnpoints.FirstOrDefault(
+                            spawnPoint => spawnPoint.Template.Id == lootKey
+                        );
+                        if (lootPostionToAdjust is null)
+                        {
+                            _logger.Warning(
+                                _localisationService.GetText(
+                                    "location-unable_to_adjust_loot_position_on_map",
+                                    new { lootKey, mapId }
+                                )
+                            );
+
+                            continue;
+                        }
+
+                        lootPostionToAdjust.Probability = newChanceValue;
+                    }
+
+                    return looselootData;
+                });
         }
     }
 
@@ -518,7 +555,7 @@ public class PostDbLoadService(
         }
 
         foreach (var area in _databaseService.GetHideout().Areas)
-        foreach (var (key, stage) in area.Stages)
+        foreach (var (_, stage) in area.Stages)
         // Only adjust crafts ABOVE the override
         {
             stage.ConstructionTime = Math.Min(stage.ConstructionTime.Value, overrideSeconds);

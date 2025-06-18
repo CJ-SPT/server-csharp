@@ -5,10 +5,9 @@ namespace SPTarkov.Server.Core.Models.Eft.Ragfair;
 
 public record RemoveOfferRequestData : InventoryBaseActionRequestData
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("offerId")]
-    public string? OfferId
-    {
-        get;
-        set;
-    }
+    public string? OfferId { get; set; }
 }

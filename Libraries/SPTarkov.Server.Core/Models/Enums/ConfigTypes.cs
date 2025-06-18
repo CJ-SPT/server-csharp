@@ -11,6 +11,7 @@ public static class ConfigTypesExtension
             ConfigTypes.AIRDROP => "spt-airdrop",
             ConfigTypes.BACKUP => "spt-backup",
             ConfigTypes.BOT => "spt-bot",
+            ConfigTypes.BTR_DELIVERY => "spt-btrdelivery",
             ConfigTypes.PMC => "spt-pmc",
             ConfigTypes.CORE => "spt-core",
             ConfigTypes.HEALTH => "spt-health",
@@ -35,7 +36,7 @@ public static class ConfigTypesExtension
             ConfigTypes.SEASONAL_EVENT => "spt-seasonalevents",
             ConfigTypes.LOST_ON_DEATH => "spt-lostondeath",
             ConfigTypes.GIFTS => "spt-gifts",
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
 
@@ -46,6 +47,7 @@ public static class ConfigTypesExtension
             ConfigTypes.AIRDROP => typeof(AirdropConfig),
             ConfigTypes.BACKUP => typeof(BackupConfig),
             ConfigTypes.BOT => typeof(BotConfig),
+            ConfigTypes.BTR_DELIVERY => typeof(BtrDeliveryConfig),
             ConfigTypes.PMC => typeof(PmcConfig),
             ConfigTypes.CORE => typeof(CoreConfig),
             ConfigTypes.HEALTH => typeof(HealthConfig),
@@ -70,7 +72,7 @@ public static class ConfigTypesExtension
             ConfigTypes.SEASONAL_EVENT => typeof(SeasonalEventConfig),
             ConfigTypes.LOST_ON_DEATH => typeof(LostOnDeathConfig),
             ConfigTypes.GIFTS => typeof(GiftsConfig),
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
 }
@@ -80,6 +82,7 @@ public enum ConfigTypes
     AIRDROP,
     BACKUP,
     BOT,
+    BTR_DELIVERY,
     PMC,
     CORE,
     HEALTH,
@@ -103,5 +106,5 @@ public enum ConfigTypes
     WEATHER,
     SEASONAL_EVENT,
     LOST_ON_DEATH,
-    GIFTS
+    GIFTS,
 }

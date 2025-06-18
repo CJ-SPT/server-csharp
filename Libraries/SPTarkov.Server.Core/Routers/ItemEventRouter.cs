@@ -12,23 +12,27 @@ using LogLevel = SPTarkov.Server.Core.Models.Spt.Logging.LogLevel;
 namespace SPTarkov.Server.Core.Routers;
 
 [Injectable]
-public class ItemEventRouter(ISptLogger<ItemEventRouter> logger,
+public class ItemEventRouter(
+    ISptLogger<ItemEventRouter> logger,
     ISptLogger<FileLogger> fileLogger,
     JsonUtil jsonUtil,
     ProfileHelper profileHelper,
     LocalisationService localisationService,
     EventOutputHolder eventOutputHolder,
     IEnumerable<ItemEventRouterDefinition> itemEventRouters,
-    ICloner cloner)
+    ICloner cloner
+)
 {
-
     /// <summary>
     ///     Handles ItemEventRouter Requests and processes them.
     /// </summary>
     /// <param name="info"> Event request </param>
     /// <param name="sessionID"> Session ID </param>
     /// <returns> Item response </returns>
-    public ItemEventRouterResponse HandleEvents(ItemEventRouterRequest info, string sessionID)
+    public async ValueTask<ItemEventRouterResponse> HandleEvents(
+        ItemEventRouterRequest info,
+        string sessionID
+    )
     {
         var output = eventOutputHolder.GetOutput(sessionID);
 
@@ -50,7 +54,8 @@ public class ItemEventRouter(ISptLogger<ItemEventRouter> logger,
                 logger.Debug($"event: {body.Action}");
             }
 
-            eventRouter.HandleItemEvent(body.Action, pmcData, body, sessionID, output);
+            await eventRouter.HandleItemEvent(body.Action, pmcData, body, sessionID, output);
+
             if (output.Warnings?.Count > 0)
             {
                 break;

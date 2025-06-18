@@ -22,7 +22,7 @@ public class RagfairServer(
     ConfigServer _configServer
 )
 {
-    protected RagfairConfig _ragfairConfig = _configServer.GetConfig<RagfairConfig>();
+    protected readonly RagfairConfig _ragfairConfig = _configServer.GetConfig<RagfairConfig>();
 
     public void Load()
     {
@@ -33,7 +33,7 @@ public class RagfairServer(
 
     public void Update()
     {
-        // Generate trader offers
+        // Generate/refresh trader offers
         var traders = GetUpdateableTraders();
         foreach (var traderId in traders)
         {
@@ -45,6 +45,7 @@ public class RagfairServer(
 
             if (_ragfairOfferService.TraderOffersNeedRefreshing(traderId))
             {
+                // Trader has passed its offer cycle time, update stock and set offer times
                 _ragfairOfferGenerator.GenerateFleaOffersForTrader(traderId);
             }
         }
@@ -56,11 +57,13 @@ public class RagfairServer(
             // Must occur BEFORE "RemoveExpiredOffers"
             var expiredAssortsWithChildren = _ragfairOfferHolder.GetExpiredOfferItems();
 
+            _ragfairOfferService.RemoveExpiredOffers();
+
+            // Force a cleanup+compact now all the expired offers are gone
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
+
             // Replace the expired offers with new ones
             _ragfairOfferGenerator.GenerateDynamicOffers(expiredAssortsWithChildren);
-
-            _ragfairOfferService.RemoveExpiredOffers();
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
         }
 
         _ragfairRequiredItemsService.BuildRequiredItemTable();
@@ -81,7 +84,11 @@ public class RagfairServer(
         List<RagfairOffer> offers
     )
     {
-        return _ragfairCategoriesService.GetCategoriesFromOffers(offers, searchRequestData, fleaUnlocked);
+        return _ragfairCategoriesService.GetCategoriesFromOffers(
+            offers,
+            searchRequestData,
+            fleaUnlocked
+        );
     }
 
     /// <summary>
@@ -95,7 +102,9 @@ public class RagfairServer(
 
         if (offer is null)
         {
-            _logger.Error(_localisationService.GetText("ragfair-offer_not_found_unable_to_hide", offerId));
+            _logger.Error(
+                _localisationService.GetText("ragfair-offer_not_found_unable_to_hide", offerId)
+            );
 
             return;
         }

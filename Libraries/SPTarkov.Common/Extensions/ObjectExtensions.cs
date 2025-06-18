@@ -1,11 +1,13 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SPTarkov.Common.Extensions;
 
 public static class ObjectExtensions
 {
-    private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> _indexedProperties = new();
+    private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> _indexedProperties =
+        new();
     private static readonly Lock _indexedPropertiesLockObject = new();
 
     private static bool TryGetCachedProperty(Type type, string key, out PropertyInfo cachedProperty)
@@ -14,7 +16,8 @@ public static class ObjectExtensions
         {
             if (!_indexedProperties.TryGetValue(type, out var properties))
             {
-                properties = type.GetProperties().ToDictionary(prop => prop.GetJsonName(), prop => prop);
+                properties = type.GetProperties()
+                    .ToDictionary(prop => prop.GetJsonName(), prop => prop);
                 _indexedProperties.Add(type, properties);
             }
 
@@ -48,7 +51,7 @@ public static class ObjectExtensions
             return default;
         }
 
-        return (T?) cachedProperty.GetValue(obj);
+        return (T?)cachedProperty.GetValue(obj);
     }
 
     public static List<object> GetAllPropValuesAsList(this object? obj)
@@ -60,6 +63,20 @@ public static class ObjectExtensions
 
         foreach (var prop in list)
         {
+            // Edge case
+            if (Attribute.IsDefined(prop, typeof(JsonExtensionDataAttribute)))
+            {
+                if (prop.GetValue(obj) is not IDictionary<string, object> kvp)
+                {
+                    // Not a dictionary, skip iterating over its keys/values
+                    continue;
+                }
+
+                result.AddRange(kvp.Select(jsonExtensionKvP => jsonExtensionKvP.Value));
+
+                continue;
+            }
+
             result.Add(prop.GetValue(obj));
         }
 
@@ -68,9 +85,37 @@ public static class ObjectExtensions
 
     public static Dictionary<string, object?> GetAllPropsAsDict(this object? obj)
     {
-        var props = obj.GetType().GetProperties();
+        if (obj is null)
+        {
+            return [];
+        }
 
-        return props.ToDictionary(prop => prop.Name, prop => prop.GetValue(obj));
+        var resultDict = new Dictionary<string, object?>();
+        foreach (var prop in obj.GetType().GetProperties())
+        {
+            // Edge case
+            if (Attribute.IsDefined(prop, typeof(JsonExtensionDataAttribute)))
+            {
+                if (prop.GetValue(obj) is not IDictionary<string, object> kvp)
+                {
+                    // Not a dictionary, skip iterating over its keys/values
+                    continue;
+                }
+
+                foreach (var jsonExtensionKvP in kvp)
+                {
+                    // Add contents of prop into dictionary we return
+                    resultDict.TryAdd(jsonExtensionKvP.Key, jsonExtensionKvP.Value);
+                }
+
+                continue;
+            }
+
+            // Normal prop
+            resultDict.Add(prop.Name, prop.GetValue(obj));
+        }
+
+        return resultDict;
     }
 
     public static T ToObject<T>(this JsonElement element)

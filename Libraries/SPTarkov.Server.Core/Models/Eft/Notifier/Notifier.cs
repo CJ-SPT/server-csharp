@@ -4,38 +4,21 @@ namespace SPTarkov.Server.Core.Models.Eft.Notifier;
 
 public record NotifierChannel
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("server")]
-    public string? Server
-    {
-        get;
-        set;
-    }
+    public string? Server { get; set; }
 
     [JsonPropertyName("channel_id")]
-    public string? ChannelId
-    {
-        get;
-        set;
-    }
+    public string? ChannelId { get; set; }
 
     [JsonPropertyName("url")]
-    public string? Url
-    {
-        get;
-        set;
-    }
+    public string? Url { get; set; }
 
     [JsonPropertyName("notifierServer")]
-    public string? NotifierServer
-    {
-        get;
-        set;
-    }
+    public string? NotifierServer { get; set; }
 
     [JsonPropertyName("ws")]
-    public string? WebSocket
-    {
-        get;
-        set;
-    }
+    public string? WebSocket { get; set; }
 }

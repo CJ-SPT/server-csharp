@@ -4,10 +4,9 @@ namespace SPTarkov.Server.Core.Models.Eft.Ragfair;
 
 public record SendRagfairReportRequestData
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("offerId")]
-    public int? OfferId
-    {
-        get;
-        set;
-    }
+    public int? OfferId { get; set; }
 }

@@ -26,7 +26,7 @@ public class RagfairServerHelper(
 )
 {
     protected const string goodsReturnedTemplate = "5bdabfe486f7743e1665df6e 0"; // Your item was not sold
-    protected RagfairConfig ragfairConfig = configServer.GetConfig<RagfairConfig>();
+    protected readonly RagfairConfig ragfairConfig = configServer.GetConfig<RagfairConfig>();
 
     /**
      * Is item valid / on blacklist / quest item
@@ -49,7 +49,10 @@ public class RagfairServerHelper(
         }
 
         // Skip bsg blacklisted items
-        if (blacklistConfig.EnableBsgList && !(itemDetails.Value?.Properties?.CanSellOnRagfair ?? false))
+        if (
+            blacklistConfig.EnableBsgList
+            && !(itemDetails.Value?.Properties?.CanSellOnRagfair ?? false)
+        )
         {
             return false;
         }
@@ -64,8 +67,8 @@ public class RagfairServerHelper(
 
         // Skip custom category blacklisted items
         if (
-            blacklistConfig.EnableCustomItemCategoryList &&
-            IsItemCategoryOnCustomFleaBlacklist(itemDetails.Value.Parent)
+            blacklistConfig.EnableCustomItemCategoryList
+            && IsItemCategoryOnCustomFleaBlacklist(itemDetails.Value.Parent)
         )
         {
             return false;
@@ -79,9 +82,9 @@ public class RagfairServerHelper(
 
         // Don't include damaged ammo packs
         if (
-            ragfairConfig.Dynamic.Blacklist.DamagedAmmoPacks &&
-            itemDetails.Value.Parent == BaseClasses.AMMO_BOX &&
-            itemDetails.Value.Name.Contains("_damaged")
+            ragfairConfig.Dynamic.Blacklist.DamagedAmmoPacks
+            && itemDetails.Value.Parent == BaseClasses.AMMO_BOX
+            && itemDetails.Value.Name.Contains("_damaged")
         )
         {
             return false;
@@ -133,7 +136,12 @@ public class RagfairServerHelper(
             MessageType.MessageWithItems,
             goodsReturnedTemplate,
             returnedItems,
-            timeUtil.GetHoursAsSeconds((int) databaseService.GetGlobals().Configuration.RagFair.YourOfferDidNotSellMaxStorageTimeInHour)
+            timeUtil.GetHoursAsSeconds(
+                (int)
+                    databaseService
+                        .GetGlobals()
+                        .Configuration.RagFair.YourOfferDidNotSellMaxStorageTimeInHour
+            )
         );
     }
 
@@ -154,9 +162,13 @@ public class RagfairServerHelper(
         }
 
         // Item Types to return one of
-        if (isWeaponPreset ||
-            itemHelper.IsOfBaseclasses(itemDetails.Value.Id, ragfairConfig.Dynamic.ShowAsSingleStack)
-           )
+        if (
+            isWeaponPreset
+            || itemHelper.IsOfBaseclasses(
+                itemDetails.Value.Id,
+                ragfairConfig.Dynamic.ShowAsSingleStack
+            )
+        )
         {
             return 1;
         }
@@ -171,10 +183,13 @@ public class RagfairServerHelper(
         }
 
         // Get a % to get of stack size
-        var stackPercent = randomUtil.GetDouble(config.StackablePercent.Min, config.StackablePercent.Max);
+        var stackPercent = randomUtil.GetDouble(
+            config.StackablePercent.Min,
+            config.StackablePercent.Max
+        );
 
         // Min value to return should be no less than 1
-        return Math.Max((int) randomUtil.GetPercentOfValue(stackPercent, maxStackSize, 0), 1);
+        return Math.Max((int)randomUtil.GetPercentOfValue(stackPercent, maxStackSize, 0), 1);
     }
 
     /**
@@ -186,34 +201,59 @@ public class RagfairServerHelper(
         return weightedRandomHelper.GetWeightedValue(ragfairConfig.Dynamic.Currencies);
     }
 
-    /**
-     * Given a preset id from globals.json, return an array of items[] with unique ids
-     * @param item Preset item
-     * @returns Array of weapon and its children
-     */
+    /// <summary>
+    /// Given a preset id from globals.json, return an array of items[] with unique ids
+    /// </summary>
+    /// <param name="item">Preset item</param>
+    /// <returns>Collection containing weapon and its children</returns>
     public List<Item> GetPresetItems(Item item)
     {
-        var preset = cloner.Clone(databaseService.GetGlobals().ItemPresets[item.Id].Items);
-        return itemHelper.ReparentItemAndChildren(item, preset);
+        if (!databaseService.GetGlobals().ItemPresets.TryGetValue(item.Id, out var presetToClone))
+        {
+            return [];
+        }
+
+        // Re-parent and clone the matching preset found
+        return itemHelper.ReparentItemAndChildren(item, cloner.Clone(presetToClone.Items));
     }
 
-    /**
-     * Possible bug, returns all items associated with an items tpl, could be multiple presets from globals.json
-     * @param item Preset item
-     * @returns
-     */
+    /// <summary>
+    /// Possible bug, returns all items associated with an items tpl, could be multiple presets from globals.json
+    /// </summary>
+    /// <param name="item">Preset item</param>
+    /// <returns>Collection of item objects</returns>
     public List<Item> GetPresetItemsByTpl(Item item)
     {
         var presets = new List<Item>();
         foreach (var itemId in databaseService.GetGlobals().ItemPresets.Keys)
         {
-            if (databaseService.GetGlobals().ItemPresets[itemId].Items[0].Template == item.Template)
+            if (
+                databaseService.GetGlobals().ItemPresets.TryGetValue(itemId, out var presetsOfItem)
+                && presetsOfItem.Items?.FirstOrDefault()?.Template == item.Template
+            )
             {
-                var presetItems = cloner.Clone(databaseService.GetGlobals().ItemPresets[itemId].Items);
-                presets.AddRange(itemHelper.ReparentItemAndChildren(item, presetItems));
+                // Add a clone of the found preset into list above
+                presets.AddRange(
+                    itemHelper.ReparentItemAndChildren(item, cloner.Clone(presetsOfItem.Items))
+                );
             }
         }
 
         return presets;
+    }
+
+    /// <summary>
+    /// Get a randomised offer count for the provided item base type
+    /// </summary>
+    /// <param name="itemParentType">Parent type for the item</param>
+    /// <returns>randomised number between min and max</returns>
+    public int GetOfferCountByBaseType(string itemParentType)
+    {
+        if (!ragfairConfig.Dynamic.OfferItemCount.TryGetValue(itemParentType, out var minMaxRange))
+        {
+            minMaxRange = ragfairConfig.Dynamic.OfferItemCount.GetValueOrDefault("default");
+        }
+
+        return randomUtil.GetInt(minMaxRange.Min, minMaxRange.Max);
     }
 }

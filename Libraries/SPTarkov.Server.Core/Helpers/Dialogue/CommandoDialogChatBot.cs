@@ -13,9 +13,10 @@ namespace SPTarkov.Server.Core.Helpers.Dialogue;
 public class CommandoDialogChatBot(
     ISptLogger<AbstractDialogChatBot> logger,
     MailSendService mailSendService,
+    LocalisationService localisationService,
     ConfigServer _configServer,
     IEnumerable<IChatCommand> chatCommands
-) : AbstractDialogChatBot(logger, mailSendService, chatCommands)
+) : AbstractDialogChatBot(logger, mailSendService, localisationService, chatCommands)
 {
     protected CoreConfig _coreConfig = _configServer.GetConfig<CoreConfig>();
 
@@ -31,8 +32,8 @@ public class CommandoDialogChatBot(
                 MemberCategory = MemberCategory.Developer,
                 SelectedMemberCategory = MemberCategory.Developer,
                 Nickname = "Commando",
-                Side = "Usec"
-            }
+                Side = "Usec",
+            },
         };
     }
 

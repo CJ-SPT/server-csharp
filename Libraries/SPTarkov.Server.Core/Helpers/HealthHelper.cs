@@ -1,11 +1,9 @@
-using SPTarkov.Common.Extensions;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Eft.Profile;
 using SPTarkov.Server.Core.Models.Spt.Config;
 using SPTarkov.Server.Core.Servers;
-using SPTarkov.Server.Core.Services;
 using SPTarkov.Server.Core.Utils;
 using BodyPartHealth = SPTarkov.Server.Core.Models.Eft.Common.Tables.BodyPartHealth;
 using Vitality = SPTarkov.Server.Core.Models.Eft.Profile.Vitality;
@@ -16,7 +14,7 @@ namespace SPTarkov.Server.Core.Helpers;
 public class HealthHelper(
     TimeUtil _timeUtil,
     SaveServer _saveServer,
-    DatabaseService _databaseService,
+    ProfileHelper _profileHelper,
     ConfigServer _configServer
 )
 {
@@ -43,81 +41,67 @@ public class HealthHelper(
             Health = null,
             Energy = 0,
             Temperature = 0,
-            Hydration = 0
+            Hydration = 0,
         };
 
         vitality.Health = new Dictionary<string, BodyPartHealth>
         {
             {
-                "Head", new BodyPartHealth
+                "Head",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
             },
             {
-                "Chest", new BodyPartHealth
+                "Chest",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
             },
             {
-                "Stomach", new BodyPartHealth
+                "Stomach",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
             },
             {
-                "LeftArm", new BodyPartHealth
+                "LeftArm",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
             },
             {
-                "RightArm", new BodyPartHealth
+                "RightArm",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
             },
             {
-                "LeftLeg", new BodyPartHealth
+                "LeftLeg",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
             },
             {
-                "RightLeg", new BodyPartHealth
+                "RightLeg",
+                new BodyPartHealth
                 {
-                    Health = new CurrentMinMax
-                    {
-                        Current = 0
-                    },
-                    Effects = new Dictionary<string, BodyPartEffectProperties>()
+                    Health = new CurrentMinMax { Current = 0 },
+                    Effects = new Dictionary<string, BodyPartEffectProperties>(),
                 }
-            }
+            },
         };
     }
 
@@ -128,27 +112,22 @@ public class HealthHelper(
     /// <param name="postRaidHealth">Post raid data</param>
     /// <param name="sessionID">Session id</param>
     /// <param name="isDead">Is player dead</param>
-    /// <param name="addEffects">Should effects be added to profile (default - true)</param>
-    /// <param name="deleteExistingEffects">Should all prior effects be removed before apply new ones  (default - true)</param>
     public void UpdateProfileHealthPostRaid(
         PmcData pmcData,
         BotBaseHealth postRaidHealth,
         string sessionID,
-        bool isDead)
+        bool isDead
+    )
     {
         var fullProfile = _saveServer.GetProfile(sessionID);
         var profileEdition = fullProfile.ProfileInfo.Edition;
         var profileSide = fullProfile.CharacterData.PmcData.Info.Side;
 
+        // Get matching 'side e.g. USEC
+        var matchingSide = _profileHelper.GetProfileTemplateForSide(profileEdition, profileSide);
+
         var defaultTemperature =
-            _databaseService.GetProfiles()
-                .GetByJsonProp<ProfileSides>(profileEdition)
-                .GetByJsonProp<TemplateSide>(profileSide.ToLower())
-                ?.Character?.Health?.Temperature ??
-            new CurrentMinMax
-            {
-                Current = 36.6
-            };
+            matchingSide?.Character?.Health?.Temperature ?? new CurrentMinMax { Current = 36.6 };
 
         StoreHydrationEnergyTempInProfile(
             fullProfile,
@@ -163,25 +142,30 @@ public class HealthHelper(
             // Effects
             if (postRaidHealth.BodyParts[bodyPart.Key].Effects is not null)
             {
-                fullProfile.VitalityData.Health[bodyPart.Key].Effects = postRaidHealth.BodyParts[bodyPart.Key].Effects;
+                fullProfile.VitalityData.Health[bodyPart.Key].Effects = postRaidHealth
+                    .BodyParts[bodyPart.Key]
+                    .Effects;
             }
 
             // Limb hp
             if (!isDead)
-                // Player alive, not is limb alive
+            // Player alive, not is limb alive
             {
-                fullProfile.VitalityData.Health[bodyPart.Key].Health.Current = postRaidHealth.BodyParts[bodyPart.Key].Health.Current ?? 0;
+                fullProfile.VitalityData.Health[bodyPart.Key].Health.Current =
+                    postRaidHealth.BodyParts[bodyPart.Key].Health.Current ?? 0;
             }
             else
             {
                 fullProfile.VitalityData.Health[bodyPart.Key].Health.Current =
-                    pmcData.Health.BodyParts[bodyPart.Key].Health.Maximum * _healthConfig.HealthMultipliers.Death ?? 0;
+                    pmcData.Health.BodyParts[bodyPart.Key].Health.Maximum
+                        * _healthConfig.HealthMultipliers.Death
+                    ?? 0;
             }
         }
 
         TransferPostRaidLimbEffectsToProfile(postRaidHealth.BodyParts, pmcData);
 
-        // Adjust hydration/energy/temp and limb hp using temp storage hydated above
+        // Adjust hydration/energy/temp and limb hp using temp storage hydrated above
         SaveHealth(pmcData, sessionID);
 
         // Reset temp storage
@@ -195,11 +179,12 @@ public class HealthHelper(
         SptProfile fullProfile,
         double hydration,
         double energy,
-        double temprature)
+        double temperature
+    )
     {
         fullProfile.VitalityData.Hydration = hydration;
         fullProfile.VitalityData.Energy = energy;
-        fullProfile.VitalityData.Temperature = temprature;
+        fullProfile.VitalityData.Temperature = temperature;
     }
 
     /// <summary>
@@ -207,7 +192,10 @@ public class HealthHelper(
     /// </summary>
     /// <param name="postRaidBodyParts">Post-raid body part data</param>
     /// <param name="profileData">Player profile on server</param>
-    protected void TransferPostRaidLimbEffectsToProfile(Dictionary<string, BodyPartHealth> postRaidBodyParts, PmcData profileData)
+    protected void TransferPostRaidLimbEffectsToProfile(
+        Dictionary<string, BodyPartHealth> postRaidBodyParts,
+        PmcData profileData
+    )
     {
         // Iterate over each body part
         HashSet<string> effectsToIgnore = ["Dehydration", "Exhaustion"];
@@ -215,47 +203,43 @@ public class HealthHelper(
         {
             // Get effects on body part from profile
             var bodyPartEffects = postRaidBodyParts[bodyPartId.Key].Effects;
-            foreach (var effect in bodyPartEffects)
+            foreach (var (key, effectDetails) in bodyPartEffects)
             {
-                var effectDetails = bodyPartEffects[effect.Key];
-
                 // Null guard
-                profileData.Health.BodyParts[bodyPartId.Key].Effects ??= new Dictionary<string, BodyPartEffectProperties>();
+                profileData.Health.BodyParts[bodyPartId.Key].Effects ??=
+                    new Dictionary<string, BodyPartEffectProperties>();
 
                 // Effect already exists on limb in server profile, skip
                 var profileBodyPartEffects = profileData.Health.BodyParts[bodyPartId.Key].Effects;
-                if (profileBodyPartEffects.TryGetValue(effect.Key, out var dictEffect))
+                if (profileBodyPartEffects.ContainsKey(key))
                 {
-                    if (effectsToIgnore.Contains(effect.Key))
-                        // Get rid of certain effects we dont want to persist out of raid
+                    if (effectsToIgnore.Contains(key))
+                    // Get rid of certain effects we don't want to persist out of raid
                     {
-                        dictEffect = null;
+                        profileBodyPartEffects[key] = null;
                     }
 
                     continue;
                 }
 
-                if (effectsToIgnore.Contains(effect.Key))
-                    // Do not pass some effects to out of raid profile
+                if (effectsToIgnore.Contains(key))
+                // Do not pass some effects to out of raid profile
                 {
                     continue;
                 }
 
-                var effectToAdd = new BodyPartEffectProperties
-                {
-                    Time = effectDetails.Time ?? -1
-                };
+                var effectToAdd = new BodyPartEffectProperties { Time = effectDetails.Time ?? -1 };
                 // Add effect to server profile
-                if (profileBodyPartEffects.TryAdd(effect.Key, effectToAdd))
+                if (profileBodyPartEffects.TryAdd(key, effectToAdd))
                 {
-                    profileBodyPartEffects[effect.Key] = effectToAdd;
+                    profileBodyPartEffects[key] = effectToAdd;
                 }
             }
         }
     }
 
     /// <summary>
-    ///     Adjust hydration/energy/temperate and body part hp values in player profile to values in profile.vitality
+    ///     Adjust hydration/energy/temperate and body part hp values in player profile to values in `profile.vitality`
     /// </summary>
     /// <param name="pmcData">Profile to update</param>
     /// <param name="sessionID">Session id</param>
@@ -296,10 +280,13 @@ public class HealthHelper(
 
             if (profileHealth.Health[bodyPart.Key].Health.Current == 0)
             {
-                profileHealth.Health[bodyPart.Key].Health.Current = bodyPart.Value.Health.Maximum * _healthConfig.HealthMultipliers.Blacked;
+                profileHealth.Health[bodyPart.Key].Health.Current =
+                    bodyPart.Value.Health.Maximum * _healthConfig.HealthMultipliers.Blacked;
             }
 
-            bodyPart.Value.Health.Current = Math.Round(profileHealth.Health[bodyPart.Key].Health.Current ?? 0);
+            bodyPart.Value.Health.Current = Math.Round(
+                profileHealth.Health[bodyPart.Key].Health.Current ?? 0
+            );
         }
     }
 
@@ -316,7 +303,8 @@ public class HealthHelper(
         PmcData pmcData,
         string sessionID,
         Dictionary<string, BodyPartHealth> bodyPartsWithEffects,
-        bool deleteExistingEffects = true)
+        bool deleteExistingEffects = true
+    )
     {
         // TODO: this will need to change, typing is all fucked up
         if (!_healthConfig.Save.Effects)
@@ -329,7 +317,8 @@ public class HealthHelper(
             // clear effects from profile bodyPart
             if (deleteExistingEffects)
             {
-                pmcData.Health.BodyParts[bodyPart.Key].Effects = new Dictionary<string, BodyPartEffectProperties>();
+                pmcData.Health.BodyParts[bodyPart.Key].Effects =
+                    new Dictionary<string, BodyPartEffectProperties>();
             }
 
             foreach (var effectType in bodyPartsWithEffects[bodyPart.Key].Effects)
@@ -354,14 +343,15 @@ public class HealthHelper(
     /// <param name="effectBodyPart">Body part to edit</param>
     /// <param name="effectType">Effect to add to body part</param>
     /// <param name="duration">How long the effect has left in seconds (-1 by default, no duration).</param>
-    protected void AddEffect(PmcData pmcData, KeyValuePair<string, BodyPartEffectProperties> effectType, double? duration = -1)
+    protected void AddEffect(
+        PmcData pmcData,
+        KeyValuePair<string, BodyPartEffectProperties> effectType,
+        double? duration = -1
+    )
     {
         var profileBodyPart = pmcData.Health.BodyParts[effectType.Key];
         profileBodyPart.Effects ??= new Dictionary<string, BodyPartEffectProperties>();
 
-        profileBodyPart.Effects[effectType.Key] = new BodyPartEffectProperties
-        {
-            Time = duration
-        };
+        profileBodyPart.Effects[effectType.Key] = new BodyPartEffectProperties { Time = duration };
     }
 }

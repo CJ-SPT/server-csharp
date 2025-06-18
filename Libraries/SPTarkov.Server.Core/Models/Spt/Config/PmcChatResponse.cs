@@ -1,65 +1,36 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace SPTarkov.Server.Core.Models.Spt.Config;
 
 public record PmcChatResponse : BaseConfig
 {
     [JsonPropertyName("kind")]
-    public string Kind
-    {
-        get;
-        set;
-    } = "spt-pmcchatresponse";
+    public override string Kind { get; set; } = "spt-pmcchatresponse";
 
     [JsonPropertyName("victim")]
-    public ResponseSettings Victim
-    {
-        get;
-        set;
-    }
+    public required ResponseSettings Victim { get; set; }
 
     [JsonPropertyName("killer")]
-    public ResponseSettings Killer
-    {
-        get;
-        set;
-    }
+    public required ResponseSettings Killer { get; set; }
 }
 
 public record ResponseSettings
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("responseChancePercent")]
-    public double ResponseChancePercent
-    {
-        get;
-        set;
-    }
+    public double ResponseChancePercent { get; set; }
 
     [JsonPropertyName("responseTypeWeights")]
-    public Dictionary<string, double> ResponseTypeWeights
-    {
-        get;
-        set;
-    }
+    public required Dictionary<string, double> ResponseTypeWeights { get; set; }
 
     [JsonPropertyName("stripCapitalisationChancePercent")]
-    public double StripCapitalisationChancePercent
-    {
-        get;
-        set;
-    }
+    public double StripCapitalisationChancePercent { get; set; }
 
     [JsonPropertyName("allCapsChancePercent")]
-    public double AllCapsChancePercent
-    {
-        get;
-        set;
-    }
+    public double AllCapsChancePercent { get; set; }
 
     [JsonPropertyName("appendBroToMessageEndChancePercent")]
-    public double AppendBroToMessageEndChancePercent
-    {
-        get;
-        set;
-    }
+    public double AppendBroToMessageEndChancePercent { get; set; }
 }

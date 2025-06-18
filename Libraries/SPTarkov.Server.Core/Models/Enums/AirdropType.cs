@@ -7,7 +7,7 @@ public enum AirdropTypeEnum
     Common,
     Supply,
     Medical,
-    Weapon
+    Weapon,
 }
 
 [EftEnumConverter]
@@ -17,5 +17,6 @@ public enum SptAirdropTypeEnum
     barter,
     foodMedical,
     weaponArmor,
-    radar
+    radar,
+    toiletPaper,
 }

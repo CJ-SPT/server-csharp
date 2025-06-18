@@ -7,24 +7,15 @@ namespace SPTarkov.Server.Core.Models.Eft.Profile;
 /// </summary>
 public record SearchFriendResponse
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("_id")]
-    public string? Id
-    {
-        get;
-        set;
-    }
+    public string? Id { get; set; }
 
     [JsonPropertyName("aid")]
-    public int? Aid
-    {
-        get;
-        set;
-    }
+    public int? Aid { get; set; }
 
     [JsonPropertyName("Info")]
-    public UserDialogDetails? Info
-    {
-        get;
-        set;
-    }
+    public UserDialogDetails? Info { get; set; }
 }

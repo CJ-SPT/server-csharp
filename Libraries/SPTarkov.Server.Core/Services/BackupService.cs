@@ -1,3 +1,4 @@
+using System.Globalization;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Spt.Config;
 using SPTarkov.Server.Core.Models.Spt.Mod;
@@ -46,22 +47,22 @@ public class BackupService
     /// <summary>
     ///     Start the backup interval if enabled in config.
     /// </summary>
-    public void StartBackupSystem()
+    public async Task StartBackupSystem()
     {
         if (!_backupConfig.BackupInterval.Enabled)
         {
             // Not backing up at regular intervals, run once and exit
-            Init();
+            await Init();
 
             return;
         }
 
         _backupIntervalTimer = new Timer(
-            _ =>
+            async _ =>
             {
                 try
                 {
-                    Init();
+                    await Init();
                 }
                 catch (Exception ex)
                 {
@@ -79,7 +80,7 @@ public class BackupService
     ///     This method orchestrates the profile backup service. Handles copying profiles to a backup directory and cleaning
     ///     up old backups if the number exceeds the configured maximum.
     /// </summary>
-    public void Init()
+    public async Task Init()
     {
         if (!IsEnabled())
         {
@@ -96,7 +97,9 @@ public class BackupService
         }
         catch (Exception ex)
         {
-            _logger.Debug($"Skipping profile backup: Unable to read profiles directory, {ex.Message}");
+            _logger.Debug(
+                $"Skipping profile backup: Unable to read profiles directory, {ex.Message}"
+            );
             return;
         }
 
@@ -124,12 +127,17 @@ public class BackupService
                 var absoluteDestinationFilePath = Path.Combine(targetDir, profileFileName);
                 if (!_fileUtil.CopyFile(relativeSourceFilePath, absoluteDestinationFilePath))
                 {
-                    _logger.Error($"Source file not found: {relativeSourceFilePath}. Cannot copy to: {absoluteDestinationFilePath}");
+                    _logger.Error(
+                        $"Source file not found: {relativeSourceFilePath}. Cannot copy to: {absoluteDestinationFilePath}"
+                    );
                 }
             }
 
             // Write a copy of active mods.
-            _fileUtil.WriteFile(Path.Combine(targetDir, "activeMods.json"), _jsonUtil.Serialize(_activeServerMods));
+            await _fileUtil.WriteFileAsync(
+                Path.Combine(targetDir, "activeMods.json"),
+                _jsonUtil.Serialize(_activeServerMods)
+            );
 
             if (_logger.IsLogEnabled(LogLevel.Debug))
             {
@@ -181,9 +189,7 @@ public class BackupService
     /// <returns> The formatted backup date string. </returns>
     protected string GenerateBackupDate()
     {
-        var date = _timeUtil.GetDateTimeNow();
-
-        return $"{date.Year}-{date.Month}-{date.Day}_{date.Hour}-{date.Minute}-{date.Second}";
+        return _timeUtil.GetDateTimeNow().ToString("yyyy-MM-dd_HH-mm-ss");
     }
 
     /// <summary>
@@ -206,7 +212,9 @@ public class BackupService
         }
     }
 
-    private SortedDictionary<long, string> GetBackupPathsWithCreationTimestamp(List<string> backupPaths)
+    protected SortedDictionary<long, string> GetBackupPathsWithCreationTimestamp(
+        List<string> backupPaths
+    )
     {
         var result = new SortedDictionary<long, string>();
         foreach (var backupPath in backupPaths)
@@ -228,7 +236,7 @@ public class BackupService
     /// </summary>
     /// <param name="dir"> The directory to search for backup files. </param>
     /// <returns> List of sorted backup file paths. </returns>
-    private List<string> GetBackupPaths(string dir)
+    protected List<string> GetBackupPaths(string dir)
     {
         var backups = _fileUtil.GetDirectories(dir).ToList();
         backups.Sort(CompareBackupDates);
@@ -242,7 +250,7 @@ public class BackupService
     /// <param name="a"> The name of the first backup folder. </param>
     /// <param name="b"> The name of the second backup folder. </param>
     /// <returns> The difference in time between the two dates in milliseconds, or `null` if either date is invalid. </returns>
-    private int CompareBackupDates(string a, string b)
+    protected int CompareBackupDates(string a, string b)
     {
         var dateA = ExtractDateFromFolderName(a);
         var dateB = ExtractDateFromFolderName(b);
@@ -252,32 +260,34 @@ public class BackupService
             return 0; // Skip comparison if either date is invalid.
         }
 
-        return (int) (dateA.Value.ToFileTimeUtc() - dateB.Value.ToFileTimeUtc());
+        return (int)(dateA.Value.ToFileTimeUtc() - dateB.Value.ToFileTimeUtc());
     }
 
     /// <summary>
     ///     Extracts a date from a folder name string formatted as `YYYY-MM-DD_hh-mm-ss`.
     /// </summary>
-    /// <param name="folderName"> The name of the folder from which to extract the date. </param>
+    /// <param name="folderPath"> The name of the folder from which to extract the date. </param>
     /// <returns> A DateTime object if the folder name is in the correct format, otherwise null. </returns>
-    private DateTime? ExtractDateFromFolderName(string folderName)
+    protected DateTime? ExtractDateFromFolderName(string folderPath)
     {
-        // backup
-        var parts = folderName.Split('\\', '-', '_');
-        if (parts.Length != 7)
+        var folderName = Path.GetFileName(folderPath);
+
+        const string format = "yyyy-MM-dd_HH-mm-ss";
+        if (
+            DateTime.TryParseExact(
+                folderName,
+                format,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var dateTime
+            )
+        )
         {
-            _logger.Warning($"Invalid backup folder name format: {folderName}");
-            return null;
+            return dateTime;
         }
 
-        var year = int.Parse(parts[1]);
-        var month = int.Parse(parts[2]);
-        var day = int.Parse(parts[3]);
-        var hour = int.Parse(parts[4]);
-        var minute = int.Parse(parts[5]);
-        var second = int.Parse(parts[6]);
-
-        return new DateTime(year, month, day, hour, minute, second);
+        _logger.Warning($"Invalid backup folder name format: {folderPath}, [{folderName}]");
+        return null;
     }
 
     /// <summary>
@@ -285,7 +295,7 @@ public class BackupService
     /// </summary>
     /// <param name="backupFilenames"> List of backup file names to be removed. </param>
     /// <returns> A promise that resolves when all specified backups have been removed. </returns>
-    private void RemoveExcessBackups(List<string> backupFilenames)
+    protected void RemoveExcessBackups(List<string> backupFilenames)
     {
         var filePathsToDelete = backupFilenames.Select(x => x);
         foreach (var pathToDelete in filePathsToDelete)

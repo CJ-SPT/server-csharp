@@ -25,7 +25,7 @@ public class PresetController(
             if (presetId != preset.Id)
             {
                 _logger.Error(
-                    $"Preset for template tpl: '{preset.Items[0].Template} {preset.Name}' has invalid key: ({presetId} != {preset.Id}). Skipping"
+                    $"Preset for template tpl: '{preset.Items.FirstOrDefault()?.Template} {preset.Name}' has invalid key: ({presetId} != {preset.Id}). Skipping"
                 );
 
                 continue;
@@ -33,10 +33,7 @@ public class PresetController(
 
             // Get root items tpl
             var tpl = preset.Items.FirstOrDefault()?.Template;
-            result.TryAdd(tpl, new PresetCacheDetails
-            {
-                PresetIds = []
-            });
+            result.TryAdd(tpl, new PresetCacheDetails { PresetIds = [] });
 
             result.TryGetValue(tpl, out var details);
             details.PresetIds.Add(presetId);

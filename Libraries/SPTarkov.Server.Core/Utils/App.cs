@@ -20,6 +20,7 @@ public class App(
     EncodingUtil _encodingUtil,
     HttpServer _httpServer,
     DatabaseService _databaseService,
+    IHostApplicationLifetime _appLifeTime,
     IEnumerable<IOnLoad> _onLoadComponents,
     IEnumerable<IOnUpdate> _onUpdateComponents,
     HttpServerHelper _httpServerHelper
@@ -27,7 +28,6 @@ public class App(
 {
     protected CoreConfig _coreConfig = _configServer.GetConfig<CoreConfig>();
     protected Dictionary<string, long> _onUpdateLastRun = new();
-    protected Timer _timer;
 
     public async Task InitializeAsync()
     {
@@ -45,10 +45,14 @@ public class App(
 
         if (_logger.IsLogEnabled(LogLevel.Debug))
         {
-            _logger.Debug($"OS: {Environment.OSVersion.Version} | {Environment.OSVersion.Platform}");
+            _logger.Debug(
+                $"OS: {Environment.OSVersion.Version} | {Environment.OSVersion.Platform}"
+            );
             _logger.Debug($"Ran as admin: {Environment.IsPrivilegedProcess}");
             _logger.Debug($"CPU cores: {Environment.ProcessorCount}");
-            _logger.Debug($"PATH: {_encodingUtil.ToBase64(Environment.ProcessPath ?? "null returned")}");
+            _logger.Debug(
+                $"PATH: {_encodingUtil.ToBase64(Environment.ProcessPath ?? "null returned")}"
+            );
             _logger.Debug($"Server: {ProgramStatics.SPT_VERSION() ?? _coreConfig.SptVersion}");
 
             // _logger.Debug($"RAM: {(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)}GB");
@@ -69,20 +73,31 @@ public class App(
             await onLoad.OnLoad();
         }
 
-        _timer = new Timer(_ => Update(_onUpdateComponents), null, TimeSpan.Zero, TimeSpan.FromMilliseconds(5000));
+        // Discard here, as this task will run indefinitely
+        _ = Task.Run(Update);
     }
 
     public async Task StartAsync()
     {
-        if(!_httpServer.IsStarted())
+        if (!_httpServer.IsStarted())
         {
-            _logger.Success(_localisationService.GetText("started_webserver_success", _httpServer.ListeningUrl()));
-            _logger.Success(_localisationService.GetText("websocket-started", _httpServer.ListeningUrl().Replace("https://", "wss://")));
+            _logger.Success(
+                _localisationService.GetText(
+                    "started_webserver_success",
+                    _httpServer.ListeningUrl()
+                )
+            );
+            _logger.Success(
+                _localisationService.GetText(
+                    "websocket-started",
+                    _httpServer.ListeningUrl().Replace("https://", "wss://")
+                )
+            );
         }
 
         _logger.Success(GetRandomisedStartMessage());
 
-       await _httpServer.StartAsync();
+        await _httpServer.StartAsync();
     }
 
     protected string GetRandomisedStartMessage()
@@ -95,70 +110,56 @@ public class App(
         return _localisationService.GetText("server_start_success");
     }
 
-    protected void Update(IEnumerable<IOnUpdate> onUpdateComponents)
+    protected async Task Update()
     {
-        try
+        while (!_appLifeTime.ApplicationStopping.IsCancellationRequested)
         {
             // If the server has failed to start, skip any update calls
             if (!_httpServer.IsStarted() || !_databaseService.IsDatabaseValid())
             {
-                return;
+                await Task.Delay(5000, _appLifeTime.ApplicationStopping);
+
+                // Skip forward to the next loop
+                continue;
             }
 
-            foreach (var updateable in onUpdateComponents)
+            foreach (var updateable in _onUpdateComponents)
             {
                 var updateableName = updateable.GetType().FullName;
                 if (string.IsNullOrEmpty(updateableName))
                 {
-                    updateableName = $"{updateable.GetType().Namespace}.{updateable.GetType().Name}";
+                    updateableName =
+                        $"{updateable.GetType().Namespace}.{updateable.GetType().Name}";
                 }
 
-                var success = false;
-                if (!_onUpdateLastRun.TryGetValue(updateableName, out var lastRunTimeTimestamp))
-                {
-                    lastRunTimeTimestamp = 0;
-                }
-
+                var lastRunTimeTimestamp = _onUpdateLastRun.GetValueOrDefault(updateableName, 0);
                 var secondsSinceLastRun = _timeUtil.GetTimeStamp() - lastRunTimeTimestamp;
 
                 try
                 {
-                    success = updateable.OnUpdate(secondsSinceLastRun);
+                    if (await updateable.OnUpdate(secondsSinceLastRun))
+                    {
+                        _onUpdateLastRun[updateableName] = _timeUtil.GetTimeStamp();
+                    }
                 }
                 catch (Exception err)
                 {
                     LogUpdateException(err, updateable);
                 }
-
-                if (success)
-                {
-                    _onUpdateLastRun[updateableName] = _timeUtil.GetTimeStamp();
-                }
-                else
-                {
-                    /* temporary for debug */
-                    const int warnTime = 20 * 60;
-
-                    if (secondsSinceLastRun % warnTime == 0)
-                    {
-                        if (_logger.IsLogEnabled(LogLevel.Debug))
-                        {
-                            _logger.Debug(_localisationService.GetText("route_onupdate_no_response", updateableName));
-                        }
-                    }
-                }
             }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
+
+            await Task.Delay(5000, _appLifeTime.ApplicationStopping);
         }
     }
 
     protected void LogUpdateException(Exception err, IOnUpdate updateable)
     {
-        _logger.Error(_localisationService.GetText("scheduled_event_failed_to_run", updateable.GetType().FullName));
+        _logger.Error(
+            _localisationService.GetText(
+                "scheduled_event_failed_to_run",
+                updateable.GetType().FullName
+            )
+        );
         _logger.Error(err.ToString());
     }
 }

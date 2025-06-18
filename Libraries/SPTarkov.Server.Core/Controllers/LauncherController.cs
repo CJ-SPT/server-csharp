@@ -1,4 +1,3 @@
-using SPTarkov.Common.Extensions;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Helpers;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
@@ -38,41 +37,35 @@ public class LauncherController(
     public ConnectResponse Connect()
     {
         // Get all possible profile types + filter out any that are blacklisted
-
-        var profiles = typeof(ProfileTemplates).GetProperties()
-            .Where(p => p.CanWrite)
-            .Select(p => p.GetJsonName())
-            .Where(profileName => !_coreConfig.Features.CreateNewProfileTypesBlacklist.Contains(profileName))
-            .ToList();
+        var profileTemplates = _databaseService
+            .GetProfileTemplates()
+            .Where(profile =>
+                !_coreConfig.Features.CreateNewProfileTypesBlacklist.Contains(profile.Key)
+            )
+            .ToDictionary();
 
         return new ConnectResponse
         {
             BackendUrl = _httpServerHelper.GetBackendUrl(),
             Name = _coreConfig.ServerName,
-            Editions = profiles,
-            ProfileDescriptions = GetProfileDescriptions()
+            Editions = profileTemplates.Select(x => x.Key).ToList(),
+            ProfileDescriptions = GetProfileDescriptions(profileTemplates),
         };
     }
 
     /// <summary>
     ///     Get descriptive text for each of the profile editions a player can choose, keyed by profile.json profile type e.g. "Edge Of Darkness"
     /// </summary>
+    /// <param name="profileTemplates">Profiles to get descriptions of</param>
     /// <returns>Dictionary of profile types with related descriptive text</returns>
-    protected Dictionary<string, string> GetProfileDescriptions()
+    protected Dictionary<string, string> GetProfileDescriptions(
+        Dictionary<string, ProfileSides> profileTemplates
+    )
     {
         var result = new Dictionary<string, string>();
-        var dbProfiles = _databaseService.GetProfiles();
-        foreach (var templatesProperty in typeof(ProfileTemplates).GetProperties().Where(p => p.CanWrite))
+        foreach (var (profileKey, profile) in profileTemplates)
         {
-            var propertyValue = templatesProperty.GetValue(dbProfiles);
-            if (propertyValue == null)
-            {
-                _logger.Warning(_localisationService.GetText("launcher-missing_property", templatesProperty));
-                continue;
-            }
-
-            var casterPropertyValue = propertyValue as ProfileSides;
-            result[templatesProperty.GetJsonName()] = _localisationService.GetText(casterPropertyValue?.DescriptionLocaleKey!);
+            result.TryAdd(profileKey, _localisationService.GetText(profile.DescriptionLocaleKey));
         }
 
         return result;
@@ -84,7 +77,11 @@ public class LauncherController(
     /// <returns></returns>
     public Info? Find(string? sessionId)
     {
-        return sessionId is not null && _saveServer.GetProfiles().TryGetValue(sessionId, out var profile) ? profile.ProfileInfo : null;
+        return
+            sessionId is not null
+            && _saveServer.GetProfiles().TryGetValue(sessionId, out var profile)
+            ? profile.ProfileInfo
+            : null;
     }
 
     /// <summary>
@@ -109,7 +106,7 @@ public class LauncherController(
     /// </summary>
     /// <param name="info"></param>
     /// <returns></returns>
-    public string Register(RegisterData info)
+    public async Task<string> Register(RegisterData info)
     {
         foreach (var kvp in _saveServer.GetProfiles())
         {
@@ -119,14 +116,14 @@ public class LauncherController(
             }
         }
 
-        return CreateAccount(info);
+        return await CreateAccount(info);
     }
 
     /// <summary>
     /// </summary>
     /// <param name="info"></param>
     /// <returns></returns>
-    protected string CreateAccount(RegisterData info)
+    protected async Task<string> CreateAccount(RegisterData info)
     {
         var profileId = GenerateProfileId();
         var scavId = GenerateProfileId();
@@ -138,12 +135,12 @@ public class LauncherController(
             Username = info.Username,
             Password = info.Password,
             IsWiped = true,
-            Edition = info.Edition
+            Edition = info.Edition,
         };
         _saveServer.CreateProfile(newProfileDetails);
 
-        _saveServer.LoadProfile(profileId);
-        _saveServer.SaveProfile(profileId);
+        await _saveServer.LoadProfileAsync(profileId);
+        await _saveServer.SaveProfileAsync(profileId);
 
         return profileId;
     }
@@ -241,7 +238,10 @@ public class LauncherController(
     /// <returns>Dictionary of mod name and mod details</returns>
     public Dictionary<string, AbstractModMetadata> GetLoadedServerMods()
     {
-        return _loadedMods.ToDictionary(sptMod => sptMod.ModMetadata?.Name ?? "UNKNOWN MOD", sptMod => sptMod.ModMetadata);
+        return _loadedMods.ToDictionary(
+            sptMod => sptMod.ModMetadata?.Name ?? "UNKNOWN MOD",
+            sptMod => sptMod.ModMetadata
+        );
     }
 
     /// <summary>

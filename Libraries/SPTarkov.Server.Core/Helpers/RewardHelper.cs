@@ -1,4 +1,3 @@
-using System.Globalization;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
@@ -73,7 +72,7 @@ public class RewardHelper(
                     _profileHelper.AddSkillPointsToPlayer(
                         profileData,
                         Enum.Parse<SkillTypes>(reward.Target),
-                        reward.Value as double?
+                        reward.Value
                     );
                     break;
                 case RewardType.Experience:
@@ -85,11 +84,7 @@ public class RewardHelper(
                     pmcProfile.Info.Level = _playerService.CalculateLevel(pmcProfile);
                     break;
                 case RewardType.TraderStanding:
-                    _traderHelper.AddStandingToTrader(
-                        sessionId,
-                        reward.Target,
-                        double.Parse(reward.Value.ToString(), CultureInfo.InvariantCulture)
-                    );
+                    _traderHelper.AddStandingToTrader(sessionId, reward.Target, reward.Value.Value);
                     break;
                 case RewardType.TraderUnlock:
                     _traderHelper.SetTraderUnlockedState(reward.Target, true, sessionId);
@@ -121,11 +116,19 @@ public class RewardHelper(
                 case RewardType.CustomizationDirect:
                     _profileHelper.AddHideoutCustomisationUnlock(fullProfile, reward, source);
                     break;
+                case RewardType.NotificationPopup:
+                    // TODO: Wire up to notification system
+                    _logger.Error("UNHANDLED: RewardType.NotificationPopup");
+                    break;
+                case RewardType.WebPromoCode:
+                    // TODO: ??? (Free arena trial from Balancing - Part 1)
+                    _logger.Error("UNHANDLED: RewardType.WebPromoCode");
+                    break;
                 default:
                     _logger.Error(
                         _localisationService.GetText(
                             "reward-type_not_handled",
-                            new { rewardType = reward.Type, rewardSourceId }
+                            new { rewardType = reward.Type, questId = rewardSourceId }
                         )
                     );
                     break;
@@ -253,10 +256,7 @@ public class RewardHelper(
     /// <param name="rewards">Array of rewards to get the items from.</param>
     /// <param name="gameVersion">The game version of the profile.</param>
     /// <returns>Array of items with the correct maxStack.</returns>
-    protected List<Item> GetRewardItems(
-        List<Reward> rewards,
-        string gameVersion
-    )
+    protected List<Item> GetRewardItems(List<Reward> rewards, string gameVersion)
     {
         // Iterate over all rewards with the desired status, flatten out items that have a type of Item
         var rewardItems = rewards.SelectMany(reward =>

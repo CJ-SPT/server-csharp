@@ -17,20 +17,20 @@ public class InsuranceCallbacks(
     InsuranceService _insuranceService,
     HttpResponseUtil _httpResponseUtil,
     ConfigServer _configServer
-)
-    : IOnUpdate
+) : IOnUpdate
 {
     private readonly InsuranceConfig _insuranceConfig = _configServer.GetConfig<InsuranceConfig>();
 
-    public bool OnUpdate(long timeSinceLastRun)
+    public Task<bool> OnUpdate(long secondsSinceLastRun)
     {
-        if (timeSinceLastRun > Math.Max(_insuranceConfig.RunIntervalSeconds, 1))
+        if (secondsSinceLastRun < _insuranceConfig.RunIntervalSeconds)
         {
-            _insuranceController.ProcessReturn();
-            return true;
+            return Task.FromResult(false);
         }
 
-        return false;
+        _insuranceController.ProcessReturn();
+
+        return Task.FromResult(true);
     }
 
     /// <summary>
@@ -40,9 +40,15 @@ public class InsuranceCallbacks(
     /// <param name="info"></param>
     /// <param name="sessionID">Session/player id</param>
     /// <returns></returns>
-    public ValueTask<string> GetInsuranceCost(string url, GetInsuranceCostRequestData info, string sessionID)
+    public ValueTask<string> GetInsuranceCost(
+        string url,
+        GetInsuranceCostRequestData info,
+        string sessionID
+    )
     {
-        return new ValueTask<string>(_httpResponseUtil.GetBody(_insuranceController.Cost(info, sessionID)));
+        return new ValueTask<string>(
+            _httpResponseUtil.GetBody(_insuranceController.Cost(info, sessionID))
+        );
     }
 
     /// <summary>

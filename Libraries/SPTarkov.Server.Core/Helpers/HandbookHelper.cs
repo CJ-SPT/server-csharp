@@ -15,65 +15,74 @@ public class HandbookHelper(
     ICloner _cloner
 )
 {
-    protected LookupCollection _handbookPriceCache = new();
-    protected ItemConfig _itemConfig = _configServer.GetConfig<ItemConfig>();
-    protected bool _lookupCacheGenerated;
+    private LookupCollection? _handbookPriceCache;
+    protected virtual LookupCollection HandbookPriceCache
+    {
+        get { return _handbookPriceCache ??= HydrateHandbookCache(); }
+    }
+
+    protected readonly ItemConfig _itemConfig = _configServer.GetConfig<ItemConfig>();
 
     /// <summary>
     ///     Create an in-memory cache of all items with associated handbook price in handbookPriceCache class
     /// </summary>
-    public void HydrateLookup()
+    protected LookupCollection HydrateHandbookCache()
     {
+        var result = new LookupCollection();
         var handbook = _databaseService.GetHandbook();
         // Add handbook overrides found in items.json config into db
-        foreach (var itemTplKey in _itemConfig.HandbookPriceOverride)
+        foreach (var (key, priceOverride) in _itemConfig.HandbookPriceOverride)
         {
-            var data = _itemConfig.HandbookPriceOverride[itemTplKey.Key];
-
-            var itemToUpdate = handbook.Items.FirstOrDefault(item => item.Id == itemTplKey.Key);
+            var itemToUpdate = handbook.Items.FirstOrDefault(item => item.Id == key);
             if (itemToUpdate is null)
             {
                 handbook.Items.Add(
                     new HandbookItem
                     {
-                        Id = itemTplKey.Key,
-                        ParentId = data.ParentId,
-                        Price = data.Price
+                        Id = key,
+                        ParentId = priceOverride.ParentId,
+                        Price = priceOverride.Price,
                     }
                 );
-                itemToUpdate = handbook.Items.FirstOrDefault(item => item.Id == itemTplKey.Key);
+                itemToUpdate = handbook.Items.FirstOrDefault(item => item.Id == key);
             }
 
-            itemToUpdate.Price = data.Price;
+            itemToUpdate.Price = priceOverride.Price;
+            if (priceOverride.ParentId is not null)
+            {
+                itemToUpdate.ParentId = priceOverride.ParentId;
+            }
         }
 
         var handbookDbClone = _cloner.Clone(handbook);
         foreach (var handbookItem in handbookDbClone.Items)
         {
-            _handbookPriceCache.Items.ById.TryAdd(handbookItem.Id, handbookItem.Price ?? 0);
-            if (!_handbookPriceCache.Items.ByParent.TryGetValue(handbookItem.ParentId, out _))
+            result.Items.ById.TryAdd(handbookItem.Id, handbookItem.Price ?? 0);
+            if (!result.Items.ByParent.TryGetValue(handbookItem.ParentId, out _))
             {
-                _handbookPriceCache.Items.ByParent.TryAdd(handbookItem.ParentId, []);
+                result.Items.ByParent.TryAdd(handbookItem.ParentId, []);
             }
 
-            _handbookPriceCache.Items.ByParent.TryGetValue(handbookItem.ParentId, out var array);
-            array.Add(handbookItem.Id);
+            result.Items.ByParent.TryGetValue(handbookItem.ParentId, out var itemIds);
+            itemIds.Add(handbookItem.Id);
         }
 
         foreach (var handbookCategory in handbookDbClone.Categories)
         {
-            _handbookPriceCache.Categories.ById.TryAdd(handbookCategory.Id, handbookCategory.ParentId);
+            result.Categories.ById.TryAdd(handbookCategory.Id, handbookCategory.ParentId);
             if (handbookCategory.ParentId is not null)
             {
-                if (!_handbookPriceCache.Categories.ByParent.TryGetValue(handbookCategory.ParentId, out _))
+                if (!result.Categories.ByParent.TryGetValue(handbookCategory.ParentId, out _))
                 {
-                    _handbookPriceCache.Categories.ByParent.TryAdd(handbookCategory.ParentId, []);
+                    result.Categories.ByParent.TryAdd(handbookCategory.ParentId, []);
                 }
 
-                _handbookPriceCache.Categories.ByParent.TryGetValue(handbookCategory.ParentId, out var array);
-                array.Add(handbookCategory.Id);
+                result.Categories.ByParent.TryGetValue(handbookCategory.ParentId, out var itemIds);
+                itemIds.Add(handbookCategory.Id);
             }
         }
+
+        return result;
     }
 
     /// <summary>
@@ -84,38 +93,41 @@ public class HandbookHelper(
     /// <returns>price in roubles</returns>
     public double GetTemplatePrice(string tpl)
     {
-        if (!_lookupCacheGenerated)
+        if (HandbookPriceCache.Items.ById.TryGetValue(tpl, out var itemPrice))
         {
-            HydrateLookup();
-            _lookupCacheGenerated = true;
+            return itemPrice;
         }
 
-        if (_handbookPriceCache.Items.ById.TryGetValue(tpl, out var item))
-        {
-            return item;
-        }
-
-        var handbookItem = _databaseService.GetHandbook().Items?.FirstOrDefault(item => item.Id == tpl);
+        var handbookItem = _databaseService
+            .GetHandbook()
+            .Items?.FirstOrDefault(item => item.Id == tpl);
         if (handbookItem is null)
         {
             const int newValue = 0;
 
-            if (!_handbookPriceCache.Items.ById.TryAdd(tpl, newValue))
+            if (!HandbookPriceCache.Items.ById.TryAdd(tpl, newValue))
             {
-                _handbookPriceCache.Items.ById[tpl] = newValue;
+                // Overwrite
+                HandbookPriceCache.Items.ById[tpl] = newValue;
             }
 
             return newValue;
         }
 
-        if (!_handbookPriceCache.Items.ById.TryAdd(tpl, handbookItem.Price ?? 0))
+        if (!HandbookPriceCache.Items.ById.TryAdd(tpl, handbookItem.Price ?? 0))
         {
-            _handbookPriceCache.Items.ById[tpl] = handbookItem.Price ?? 0;
+            // Overwrite
+            HandbookPriceCache.Items.ById[tpl] = handbookItem.Price ?? 0;
         }
 
         return handbookItem.Price.Value;
     }
 
+    /// <summary>
+    /// Sum price of supplied items with handbook prices
+    /// </summary>
+    /// <param name="items">Items to Sum</param>
+    /// <returns></returns>
     public double GetTemplatePriceForItems(List<Item> items)
     {
         var total = 0D;
@@ -134,7 +146,7 @@ public class HandbookHelper(
     /// <returns>string array</returns>
     public List<string> TemplatesWithParent(string parentId)
     {
-        _handbookPriceCache.Items.ByParent.TryGetValue(parentId, out var template);
+        HandbookPriceCache.Items.ByParent.TryGetValue(parentId, out var template);
 
         return template ?? [];
     }
@@ -146,7 +158,7 @@ public class HandbookHelper(
     /// <returns>true if exists in cache</returns>
     public bool IsCategory(string category)
     {
-        return _handbookPriceCache.Categories.ById.TryGetValue(category, out _);
+        return HandbookPriceCache.Categories.ById.TryGetValue(category, out _);
     }
 
     /// <summary>
@@ -156,7 +168,7 @@ public class HandbookHelper(
     /// <returns>string array</returns>
     public List<string> ChildrenCategories(string categoryParent)
     {
-        _handbookPriceCache.Categories.ByParent.TryGetValue(categoryParent, out var category);
+        HandbookPriceCache.Categories.ByParent.TryGetValue(categoryParent, out var category);
         return category ?? [];
     }
 
@@ -183,60 +195,44 @@ public class HandbookHelper(
     {
         if (currencyTypeTo == Money.ROUBLES)
         {
-            return (int) roubleCurrencyCount;
+            return roubleCurrencyCount;
         }
 
         // Get price of currency from handbook
         var price = GetTemplatePrice(currencyTypeTo);
-        return price > 0
-            ? Math.Max(1, Math.Round(roubleCurrencyCount / price))
-            : 0;
+        return price > 0 ? Math.Max(1, Math.Round(roubleCurrencyCount / price)) : 0;
     }
 
     public HandbookCategory GetCategoryById(string handbookId)
     {
-        return _databaseService.GetHandbook().Categories.FirstOrDefault(category => category.Id == handbookId);
-    }
-}
-
-public class LookupItem<T, I>
-{
-    public LookupItem()
-    {
-        ById = new Dictionary<string, T>();
-        ByParent = new Dictionary<string, List<I>>();
+        return _databaseService
+            .GetHandbook()
+            .Categories.FirstOrDefault(category => category.Id == handbookId);
     }
 
-    public Dictionary<string, T> ById
+    protected record LookupItem<T, I>
     {
-        get;
-        set;
+        public LookupItem()
+        {
+            ById = new Dictionary<string, T>();
+            ByParent = new Dictionary<string, List<I>>();
+        }
+
+        public Dictionary<string, T> ById { get; set; }
+
+        public Dictionary<string, List<I>> ByParent { get; set; }
     }
 
-    public Dictionary<string, List<I>> ByParent
+    protected record LookupCollection
     {
-        get;
-        set;
-    }
-}
+        public LookupCollection()
+        {
+            Items = new LookupItem<double, string>();
+            Categories = new LookupItem<string, string>();
+        }
 
-public class LookupCollection
-{
-    public LookupCollection()
-    {
-        Items = new LookupItem<double, string>();
-        Categories = new LookupItem<string, string>();
-    }
+        public LookupItem<double, string> Items { get; set; }
 
-    public LookupItem<double, string> Items
-    {
-        get;
-        set;
-    }
-
-    public LookupItem<string, string> Categories
-    {
-        get;
-        set;
+        public LookupItem<string, string> Categories { get; set; }
     }
 }

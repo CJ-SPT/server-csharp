@@ -1,13 +1,14 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Eft.Profile;
 using SPTarkov.Server.Core.Models.Eft.Ws;
+using SPTarkov.Server.Core.Utils;
 
 namespace SPTarkov.Server.Core.Helpers;
 
 [Injectable(InjectionType.Singleton)]
-public class NotifierHelper(HttpServerHelper _httpServerHelper)
+public class NotifierHelper(HttpServerHelper httpServerHelper, HashUtil hashUtil)
 {
-    protected WsPing ping = new();
+    protected static WsPing ping = new();
 
     public WsNotificationEvent GetDefaultNotification()
     {
@@ -22,7 +23,8 @@ public class NotifierHelper(HttpServerHelper _httpServerHelper)
      */
     public WsRagfairOfferSold CreateRagfairOfferSoldNotification(
         Message dialogueMessage,
-        MessageContentRagfair ragfairData)
+        MessageContentRagfair ragfairData
+    )
     {
         return new WsRagfairOfferSold
         {
@@ -30,7 +32,7 @@ public class NotifierHelper(HttpServerHelper _httpServerHelper)
             EventIdentifier = dialogueMessage.Id,
             OfferId = ragfairData.OfferId,
             HandbookId = ragfairData.HandbookId,
-            Count = (int) ragfairData.Count
+            Count = (int)ragfairData.Count,
         };
     }
 
@@ -46,12 +48,23 @@ public class NotifierHelper(HttpServerHelper _httpServerHelper)
             EventType = NotificationEventType.new_message,
             EventIdentifier = dialogueMessage.Id,
             DialogId = dialogueMessage.UserId,
-            Message = dialogueMessage
+            Message = dialogueMessage,
         };
     }
 
-    public string GetWebSocketServer(string sessionID)
+    public WsRagfairNewRating CreateRagfairNewRatingNotification(double rating, bool isGrowing)
     {
-        return $"{_httpServerHelper.GetWebsocketUrl()}/notifierServer/getwebsocket/{sessionID}";
+        return new WsRagfairNewRating
+        {
+            EventType = NotificationEventType.RagfairNewRating,
+            EventIdentifier = hashUtil.Generate(),
+            Rating = rating,
+            IsRatingGrowing = isGrowing,
+        };
+    }
+
+    public string GetWebSocketServer(string sessionId)
+    {
+        return $"{httpServerHelper.GetWebsocketUrl()}/notifierServer/getwebsocket/{sessionId}";
     }
 }

@@ -7,41 +7,27 @@ namespace SPTarkov.Server.Core.Models.Eft.Health;
 
 public class WorkoutData : IRequestData
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("skills")]
-    public WorkoutSkills? Skills
-    {
-        get;
-        set;
-    }
+    public WorkoutSkills? Skills { get; set; }
 }
 
 public record WorkoutSkills
 {
+    [JsonExtensionData]
+    public Dictionary<string, object> ExtensionData { get; set; }
+
     [JsonPropertyName("Common")]
-    public List<BaseSkill> Common
-    {
-        get;
-        set;
-    }
+    public List<CommonSkill> Common { get; set; }
 
     [JsonPropertyName("Mastering")]
-    public List<Mastering>? Mastering
-    {
-        get;
-        set;
-    }
+    public List<Mastering>? Mastering { get; set; }
 
     [JsonPropertyName("Bonuses")]
-    public Bonus? Bonuses
-    {
-        get;
-        set;
-    }
+    public Bonus? Bonuses { get; set; }
 
     [JsonPropertyName("Points")]
-    public int? Points
-    {
-        get;
-        set;
-    }
+    public int? Points { get; set; }
 }

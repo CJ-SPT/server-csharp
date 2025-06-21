@@ -365,7 +365,7 @@ public class RepeatableQuestRewardGenerator(
     {
         return _randomUtil.RandInt(
             1,
-            (int)Math.Round(_mathUtil.Interp1(pmcLevel, levelsConfig, itemsConfig) ?? 0) + 1
+            (int)Math.Round(_mathUtil.Interp1(pmcLevel, levelsConfig, itemsConfig)) + 1
         );
     }
 

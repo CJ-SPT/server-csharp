@@ -1,3 +1,4 @@
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -53,7 +54,7 @@ public abstract class StaticRouter : Router
     public async ValueTask<object> HandleStatic(
         string url,
         string? body,
-        string sessionID,
+        MongoId sessionId,
         string output
     )
     {
@@ -65,7 +66,7 @@ public abstract class StaticRouter : Router
             info = (IRequestData?)_jsonUtil.Deserialize(body, type);
         }
 
-        return await action.action(url, info, sessionID, output);
+        return await action.action(url, info, sessionId, output);
     }
 
     protected override List<HandledRoute> GetHandledRoutes()
@@ -88,7 +89,7 @@ public abstract class DynamicRouter : Router
     public async ValueTask<object> HandleDynamic(
         string url,
         string? body,
-        string sessionID,
+        MongoId sessionID,
         string output
     )
     {
@@ -117,7 +118,7 @@ public abstract class ItemEventRouterDefinition : Router
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     );
 }
@@ -131,7 +132,7 @@ public record HandledRoute(string route, bool dynamic);
 
 public record RouteAction(
     string url,
-    Func<string, IRequestData?, string?, string?, ValueTask<object>> action,
+    Func<string, IRequestData?, MongoId, string?, ValueTask<object>> action,
     Type? bodyType = null
 );
 //public action: (url: string, info: any, sessionID: string, output: string) => Promise<any>,

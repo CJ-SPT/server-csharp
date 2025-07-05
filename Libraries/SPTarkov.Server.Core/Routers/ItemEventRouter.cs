@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
 using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
 using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Services;
@@ -31,7 +32,7 @@ public class ItemEventRouter(
     /// <returns> Item response </returns>
     public async ValueTask<ItemEventRouterResponse> HandleEvents(
         ItemEventRouterRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
         var output = eventOutputHolder.GetOutput(sessionID);

@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -10,15 +11,8 @@ using SPTarkov.Server.Core.Models.Enums;
 namespace SPTarkov.Server.Core.Routers.ItemEvents;
 
 [Injectable]
-public class TradeItemEventRouter : ItemEventRouterDefinition
+public class TradeItemEventRouter(TradeCallbacks tradeCallbacks) : ItemEventRouterDefinition
 {
-    protected TradeCallbacks _tradeCallbacks;
-
-    public TradeItemEventRouter(TradeCallbacks tradeCallbacks)
-    {
-        _tradeCallbacks = tradeCallbacks;
-    }
-
     protected override List<HandledRoute> GetHandledRoutes()
     {
         return new List<HandledRoute>
@@ -33,7 +27,7 @@ public class TradeItemEventRouter : ItemEventRouterDefinition
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     )
     {
@@ -41,7 +35,7 @@ public class TradeItemEventRouter : ItemEventRouterDefinition
         {
             case ItemEventActions.TRADING_CONFIRM:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _tradeCallbacks.ProcessTrade(
+                    tradeCallbacks.ProcessTrade(
                         pmcData,
                         body as ProcessBaseTradeRequestData,
                         sessionID
@@ -49,7 +43,7 @@ public class TradeItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.RAGFAIR_BUY_OFFER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _tradeCallbacks.ProcessRagfairTrade(
+                    tradeCallbacks.ProcessRagfairTrade(
                         pmcData,
                         body as ProcessRagfairTradeRequestData,
                         sessionID
@@ -57,7 +51,7 @@ public class TradeItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.SELL_ALL_FROM_SAVAGE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _tradeCallbacks.SellAllFromSavage(
+                    tradeCallbacks.SellAllFromSavage(
                         pmcData,
                         body as SellScavItemsToFenceRequestData,
                         sessionID

@@ -1,5 +1,6 @@
 ﻿using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Location;
 using SPTarkov.Server.Core.Utils;
@@ -8,18 +9,18 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
 public class LocationCallbacks(
-    HttpResponseUtil _httpResponseUtil,
-    LocationController _locationController
+    HttpResponseUtil httpResponseUtil,
+    LocationController locationController
 )
 {
     /// <summary>
     ///     Handle client/locations
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetLocationData(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetLocationData(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_locationController.GenerateAll(sessionID))
+            httpResponseUtil.GetBody(locationController.GenerateAll(sessionID))
         );
     }
 
@@ -30,11 +31,11 @@ public class LocationCallbacks(
     public ValueTask<string> GetAirdropLoot(
         string url,
         GetAirdropLootRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_locationController.GetAirDropLoot(info))
+            httpResponseUtil.GetBody(locationController.GetAirDropLoot(info))
         );
     }
 }

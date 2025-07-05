@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
 using SPTarkov.Server.Core.Models.Eft.Ragfair;
@@ -13,20 +14,20 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable(TypePriority = OnLoadOrder.RagfairCallbacks)]
 public class RagfairCallbacks(
-    HttpResponseUtil _httpResponseUtil,
-    RagfairServer _ragfairServer,
-    RagfairController _ragfairController,
-    RagfairTaxService _ragfairTaxService,
-    RagfairPriceService _ragfairPriceService,
-    ConfigServer _configServer
+    HttpResponseUtil httpResponseUtil,
+    RagfairServer ragfairServer,
+    RagfairController ragfairController,
+    RagfairTaxService ragfairTaxService,
+    RagfairPriceService ragfairPriceService,
+    ConfigServer configServer
 ) : IOnLoad, IOnUpdate
 {
-    private readonly RagfairConfig _ragfairConfig = _configServer.GetConfig<RagfairConfig>();
+    private readonly RagfairConfig _ragfairConfig = configServer.GetConfig<RagfairConfig>();
 
     public Task OnLoad()
     {
-        _ragfairServer.Load();
-        _ragfairPriceService.Load();
+        ragfairServer.Load();
+        ragfairPriceService.Load();
 
         return Task.CompletedTask;
     }
@@ -40,13 +41,13 @@ public class RagfairCallbacks(
         }
 
         // There is a flag inside this class that only makes it run once.
-        _ragfairServer.AddPlayerOffers();
+        ragfairServer.AddPlayerOffers();
 
         // Check player offers and mail payment to player if sold
-        _ragfairController.Update();
+        ragfairController.Update();
 
         // Process all offers / expire offers
-        _ragfairServer.Update();
+        ragfairServer.Update();
 
         return Task.FromResult(true);
     }
@@ -59,10 +60,10 @@ public class RagfairCallbacks(
     /// <param name="info"></param>
     /// <param name="sessionID">Session/player id</param>
     /// <returns></returns>
-    public ValueTask<string> Search(string url, SearchRequestData info, string sessionID)
+    public ValueTask<string> Search(string url, SearchRequestData info, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_ragfairController.GetOffers(sessionID, info))
+            httpResponseUtil.GetBody(ragfairController.GetOffers(sessionID, info))
         );
     }
 
@@ -76,11 +77,11 @@ public class RagfairCallbacks(
     public ValueTask<string> GetMarketPrice(
         string url,
         GetMarketPriceRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_ragfairController.GetItemMinAvgMaxFleaPriceValues(info))
+            httpResponseUtil.GetBody(ragfairController.GetItemMinAvgMaxFleaPriceValues(info))
         );
     }
 
@@ -94,10 +95,10 @@ public class RagfairCallbacks(
     public ItemEventRouterResponse AddOffer(
         PmcData pmcData,
         AddOfferRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _ragfairController.AddPlayerOffer(pmcData, info, sessionID);
+        return ragfairController.AddPlayerOffer(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -110,10 +111,10 @@ public class RagfairCallbacks(
     public ItemEventRouterResponse RemoveOffer(
         PmcData pmcData,
         RemoveOfferRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _ragfairController.FlagOfferForRemoval(info.OfferId, sessionID);
+        return ragfairController.FlagOfferForRemoval(info.OfferId, sessionID);
     }
 
     /// <summary>
@@ -126,10 +127,10 @@ public class RagfairCallbacks(
     public ItemEventRouterResponse ExtendOffer(
         PmcData pmcData,
         ExtendOfferRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _ragfairController.ExtendOffer(info, sessionID);
+        return ragfairController.ExtendOffer(info, sessionID);
     }
 
     /// <summary>
@@ -140,10 +141,10 @@ public class RagfairCallbacks(
     /// <param name="info"></param>
     /// <param name="sessionID">Session/player id</param>
     /// <returns></returns>
-    public ValueTask<string> GetFleaPrices(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetFleaPrices(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_ragfairController.GetAllFleaPrices())
+            httpResponseUtil.GetBody(ragfairController.GetAllFleaPrices())
         );
     }
 
@@ -157,20 +158,20 @@ public class RagfairCallbacks(
     public ValueTask<string> SendReport(
         string url,
         SendRagfairReportRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return new ValueTask<string>(_httpResponseUtil.NullResponse());
+        return new ValueTask<string>(httpResponseUtil.NullResponse());
     }
 
     public ValueTask<string> StorePlayerOfferTaxAmount(
         string url,
         StorePlayerOfferTaxAmountRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        _ragfairTaxService.StoreClientOfferTaxValue(sessionID, info);
-        return new ValueTask<string>(_httpResponseUtil.NullResponse());
+        ragfairTaxService.StoreClientOfferTaxValue(sessionID, info);
+        return new ValueTask<string>(httpResponseUtil.NullResponse());
     }
 
     /// <summary>
@@ -183,11 +184,11 @@ public class RagfairCallbacks(
     public ValueTask<string> GetFleaOfferById(
         string url,
         GetRagfairOfferByIdRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_ragfairController.GetOfferByInternalId(sessionID, info))
+            httpResponseUtil.GetBody(ragfairController.GetOfferByInternalId(sessionID, info))
         );
     }
 }

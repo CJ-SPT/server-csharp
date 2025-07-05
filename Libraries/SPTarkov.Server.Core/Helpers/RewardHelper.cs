@@ -77,7 +77,7 @@ public class RewardHelper(
                     break;
                 case RewardType.Experience:
                     _profileHelper.AddExperienceToPmc(
-                        sessionId,
+                        sessionId.Value,
                         int.Parse(reward.Value.ToString())
                     ); // this must occur first as the output object needs to take the modified profile exp value
                     // Recalculate level in event player leveled up
@@ -101,7 +101,7 @@ public class RewardHelper(
                     AddAchievementToProfile(fullProfile, reward.Target);
                     break;
                 case RewardType.StashRows:
-                    _profileHelper.AddStashRowsBonusToProfile(sessionId, (int)reward.Value); // Add specified stash rows from reward - requires client restart
+                    _profileHelper.AddStashRowsBonusToProfile(sessionId.Value, (int)reward.Value); // Add specified stash rows from reward - requires client restart
                     break;
                 case RewardType.ProductionScheme:
                     FindAndAddHideoutProductionIdToProfile(

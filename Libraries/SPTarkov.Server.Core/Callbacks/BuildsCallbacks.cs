@@ -1,5 +1,6 @@
 ﻿using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Builds;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.PresetBuild;
@@ -8,16 +9,16 @@ using SPTarkov.Server.Core.Utils;
 namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
-public class BuildsCallbacks(HttpResponseUtil _httpResponseUtil, BuildController _buildController)
+public class BuildsCallbacks(HttpResponseUtil httpResponseUtil, BuildController buildController)
 {
     /// <summary>
     ///     Handle client/builds/list
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetBuilds(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetBuilds(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_buildController.GetUserBuilds(sessionID))
+            httpResponseUtil.GetBody(buildController.GetUserBuilds(sessionID))
         );
     }
 
@@ -31,11 +32,11 @@ public class BuildsCallbacks(HttpResponseUtil _httpResponseUtil, BuildController
     public ValueTask<string> CreateMagazineTemplate(
         string url,
         SetMagazineRequest request,
-        string sessionID
+        MongoId sessionID
     )
     {
-        _buildController.CreateMagazineTemplate(sessionID, request);
-        return new ValueTask<string>(_httpResponseUtil.NullResponse());
+        buildController.CreateMagazineTemplate(sessionID, request);
+        return new ValueTask<string>(httpResponseUtil.NullResponse());
     }
 
     /// <summary>
@@ -45,11 +46,11 @@ public class BuildsCallbacks(HttpResponseUtil _httpResponseUtil, BuildController
     public ValueTask<string> SetWeapon(
         string url,
         PresetBuildActionRequestData request,
-        string sessionID
+        MongoId sessionID
     )
     {
-        _buildController.SaveWeaponBuild(sessionID, request);
-        return new ValueTask<string>(_httpResponseUtil.NullResponse());
+        buildController.SaveWeaponBuild(sessionID, request);
+        return new ValueTask<string>(httpResponseUtil.NullResponse());
     }
 
     /// <summary>
@@ -59,11 +60,11 @@ public class BuildsCallbacks(HttpResponseUtil _httpResponseUtil, BuildController
     public ValueTask<string> SetEquipment(
         string url,
         PresetBuildActionRequestData request,
-        string sessionID
+        MongoId sessionID
     )
     {
-        _buildController.SaveEquipmentBuild(sessionID, request);
-        return new ValueTask<string>(_httpResponseUtil.NullResponse());
+        buildController.SaveEquipmentBuild(sessionID, request);
+        return new ValueTask<string>(httpResponseUtil.NullResponse());
     }
 
     /// <summary>
@@ -73,10 +74,10 @@ public class BuildsCallbacks(HttpResponseUtil _httpResponseUtil, BuildController
     public ValueTask<string> DeleteBuild(
         string url,
         RemoveBuildRequestData request,
-        string sessionID
+        MongoId sessionID
     )
     {
-        _buildController.RemoveBuild(sessionID, request);
-        return new ValueTask<string>(_httpResponseUtil.NullResponse());
+        buildController.RemoveBuild(sessionID, request);
+        return new ValueTask<string>(httpResponseUtil.NullResponse());
     }
 }

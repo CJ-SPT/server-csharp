@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Health;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -10,9 +11,9 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
 public class HealthCallbacks(
-    HttpResponseUtil _httpResponseUtil,
-    ProfileHelper _profileHelper,
-    HealthController _healthController
+    HttpResponseUtil httpResponseUtil,
+    ProfileHelper profileHelper,
+    HealthController healthController
 )
 {
     /// <summary>
@@ -22,14 +23,14 @@ public class HealthCallbacks(
     /// <param name="info">HealthListener.Instance.CurrentHealth class</param>
     /// <param name="sessionID">session id</param>
     /// <returns>empty response, no data sent back to client</returns>
-    public ValueTask<string> HandleWorkoutEffects(string url, WorkoutData info, string sessionID)
+    public ValueTask<string> HandleWorkoutEffects(string url, WorkoutData info, MongoId sessionID)
     {
-        _healthController.ApplyWorkoutChanges(
-            _profileHelper.GetPmcProfile(sessionID),
+        healthController.ApplyWorkoutChanges(
+            profileHelper.GetPmcProfile(sessionID),
             info,
             sessionID
         );
-        return new ValueTask<string>(_httpResponseUtil.EmptyResponse());
+        return new ValueTask<string>(httpResponseUtil.EmptyResponse());
     }
 
     /// <summary>
@@ -42,10 +43,10 @@ public class HealthCallbacks(
     public ItemEventRouterResponse OffraidEat(
         PmcData pmcData,
         OffraidEatRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _healthController.OffRaidEat(pmcData, info, sessionID);
+        return healthController.OffRaidEat(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -58,10 +59,10 @@ public class HealthCallbacks(
     public ItemEventRouterResponse OffraidHeal(
         PmcData pmcData,
         OffraidHealRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _healthController.OffRaidHeal(pmcData, info, sessionID);
+        return healthController.OffRaidHeal(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -74,9 +75,9 @@ public class HealthCallbacks(
     public ItemEventRouterResponse HealthTreatment(
         PmcData pmcData,
         HealthTreatmentRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _healthController.HealthTreatment(pmcData, info, sessionID);
+        return healthController.HealthTreatment(pmcData, info, sessionID);
     }
 }

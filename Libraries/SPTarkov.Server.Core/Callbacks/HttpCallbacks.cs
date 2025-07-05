@@ -5,11 +5,11 @@ using SPTarkov.Server.Core.Servers;
 namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.HttpCallbacks)]
-public class HttpCallbacks(HttpServer _httpServer) : IOnLoad
+public class HttpCallbacks(HttpServer httpServer) : IOnLoad
 {
     public Task OnLoad()
     {
-        _httpServer.Load();
+        httpServer.Load();
 
         return Task.CompletedTask;
     }

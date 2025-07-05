@@ -2,6 +2,7 @@
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.DI;
 using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Utils;
 
 namespace SPTarkov.Server.Core.Routers.Serializers;
@@ -13,7 +14,7 @@ public class NotifySerializer(
     HttpServerHelper httpServerHelper
 ) : ISerializer
 {
-    public async Task Serialize(string sessionID, HttpRequest req, HttpResponse resp, object? body)
+    public async Task Serialize(MongoId sessionID, HttpRequest req, HttpResponse resp, object? body)
     {
         var splittedUrl = req.Path.Value.Split("/");
         var tmpSessionID = splittedUrl[^1].Split("?last_id")[0];

@@ -62,7 +62,7 @@ public class ProfileHelper(
     ///     Get all profiles from server
     /// </summary>
     /// <returns>Dictionary of profiles</returns>
-    public Dictionary<string, SptProfile> GetProfiles()
+    public Dictionary<MongoId, SptProfile> GetProfiles()
     {
         return _saveServer.GetProfiles();
     }
@@ -72,7 +72,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionId">Session/Player id</param>
     /// <returns>Array of PmcData objects</returns>
-    public List<PmcData> GetCompleteProfile(string sessionId)
+    public List<PmcData> GetCompleteProfile(MongoId sessionId)
     {
         var output = new List<PmcData>();
 
@@ -113,7 +113,7 @@ public class ProfileHelper(
     /// <param name="nicknameRequest">nickname request object</param>
     /// <param name="sessionID">Session id</param>
     /// <returns>True if already in use</returns>
-    public bool IsNicknameTaken(ValidateNicknameRequestData nicknameRequest, string sessionID)
+    public bool IsNicknameTaken(ValidateNicknameRequestData nicknameRequest, MongoId sessionID)
     {
         var allProfiles = _saveServer.GetProfiles().Values;
 
@@ -144,7 +144,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionID">Session id</param>
     /// <param name="experienceToAdd">Experience to add to PMC character</param>
-    public void AddExperienceToPmc(string sessionID, int experienceToAdd)
+    public void AddExperienceToPmc(MongoId sessionID, int experienceToAdd)
     {
         var pmcData = GetPmcProfile(sessionID);
         if (pmcData != null)
@@ -228,7 +228,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionID">Profile id to get</param>
     /// <returns>SptProfile object</returns>
-    public SptProfile? GetFullProfile(string sessionID)
+    public SptProfile? GetFullProfile(MongoId sessionID)
     {
         return _saveServer.ProfileExists(sessionID) ? _saveServer.GetProfile(sessionID) : null;
     }
@@ -257,7 +257,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionID">The session ID to return the profile for</param>
     /// <returns></returns>
-    public SearchFriendResponse? GetChatRoomMemberFromSessionId(string sessionID)
+    public SearchFriendResponse? GetChatRoomMemberFromSessionId(MongoId sessionID)
     {
         var pmcProfile = GetFullProfile(sessionID)?.CharacterData?.PmcData;
         if (pmcProfile == null)
@@ -295,7 +295,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionID">Profile id to return</param>
     /// <returns>PmcData object</returns>
-    public PmcData? GetPmcProfile(string sessionID)
+    public PmcData? GetPmcProfile(MongoId sessionID)
     {
         return GetFullProfile(sessionID)?.CharacterData?.PmcData;
     }
@@ -306,7 +306,7 @@ public class ProfileHelper(
     /// <param name="userId">Id to validate</param>
     /// <returns>True is a player</returns>
     /// UNUSED?
-    public bool IsPlayer(string userId)
+    public bool IsPlayer(MongoId userId)
     {
         return _saveServer.ProfileExists(userId);
     }
@@ -316,9 +316,9 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionID">Profiles id</param>
     /// <returns>IPmcData object</returns>
-    public PmcData? GetScavProfile(string sessionID)
+    public PmcData? GetScavProfile(MongoId sessionID)
     {
-        return _saveServer.GetProfile(sessionID)?.CharacterData?.ScavData;
+        return _saveServer.GetProfile(sessionID).CharacterData?.ScavData;
     }
 
     /// <summary>
@@ -360,7 +360,7 @@ public class ProfileHelper(
     /// <param name="sessionID">Profile id</param>
     /// <returns>True if profile is to be wiped of data/progress</returns>
     /// TODO: logic doesn't feel right to have IsWiped being nullable
-    protected bool IsWiped(string sessionID)
+    protected bool IsWiped(MongoId sessionID)
     {
         return _saveServer.GetProfile(sessionID)?.ProfileInfo?.IsWiped ?? false;
     }
@@ -397,7 +397,7 @@ public class ProfileHelper(
     /// <param name="playerId">Player to add gift flag to</param>
     /// <param name="giftId">Gift player received</param>
     /// <param name="maxCount">Limit of how many of this gift a player can have</param>
-    public void FlagGiftReceivedInProfile(string playerId, string giftId, int maxCount)
+    public void FlagGiftReceivedInProfile(MongoId playerId, string giftId, int maxCount)
     {
         var profileToUpdate = GetFullProfile(playerId);
         profileToUpdate.SptData.ReceivedGifts ??= [];
@@ -430,7 +430,7 @@ public class ProfileHelper(
     /// <param name="giftId">Gift to check for</param>
     /// <param name="maxGiftCount">Max times gift can be given to player</param>
     /// <returns>True if player has received gift previously</returns>
-    public bool PlayerHasReceivedMaxNumberOfGift(string playerId, string giftId, int maxGiftCount)
+    public bool PlayerHasReceivedMaxNumberOfGift(MongoId playerId, string giftId, int maxGiftCount)
     {
         var profile = GetFullProfile(playerId);
         if (profile == null)
@@ -561,7 +561,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionID">Profile id to check</param>
     /// <returns>True if account is developer</returns>
-    public bool IsDeveloperAccount(string sessionID)
+    public bool IsDeveloperAccount(MongoId sessionID)
     {
         return GetFullProfile(sessionID)
                 ?.ProfileInfo?.Edition?.ToLowerInvariant()
@@ -573,7 +573,7 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionId">Profile id to give rows to</param>
     /// <param name="rowsToAdd">How many rows to give profile</param>
-    public void AddStashRowsBonusToProfile(string sessionId, int rowsToAdd)
+    public void AddStashRowsBonusToProfile(MongoId sessionId, int rowsToAdd)
     {
         var profile = GetPmcProfile(sessionId);
         if (profile?.Bonuses is null)

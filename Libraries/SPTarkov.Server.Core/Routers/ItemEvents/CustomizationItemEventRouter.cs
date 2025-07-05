@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.Customization;
@@ -11,20 +12,11 @@ using SPTarkov.Server.Core.Models.Utils;
 namespace SPTarkov.Server.Core.Routers.ItemEvents;
 
 [Injectable]
-public class CustomizationItemEventRouter : ItemEventRouterDefinition
+public class CustomizationItemEventRouter(
+    ISptLogger<CustomizationItemEventRouter> logger,
+    CustomizationCallbacks customizationCallbacks
+) : ItemEventRouterDefinition
 {
-    protected CustomizationCallbacks _customizationCallbacks;
-    protected ISptLogger<CustomizationItemEventRouter> _logger;
-
-    public CustomizationItemEventRouter(
-        ISptLogger<CustomizationItemEventRouter> logger,
-        CustomizationCallbacks customizationCallbacks
-    )
-    {
-        _logger = logger;
-        _customizationCallbacks = customizationCallbacks;
-    }
-
     protected override List<HandledRoute> GetHandledRoutes()
     {
         return new List<HandledRoute>
@@ -38,7 +30,7 @@ public class CustomizationItemEventRouter : ItemEventRouterDefinition
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     )
     {
@@ -46,7 +38,7 @@ public class CustomizationItemEventRouter : ItemEventRouterDefinition
         {
             case ItemEventActions.CUSTOMIZATION_BUY:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _customizationCallbacks.BuyCustomisation(
+                    customizationCallbacks.BuyCustomisation(
                         pmcData,
                         body as BuyClothingRequestData,
                         sessionID
@@ -54,7 +46,7 @@ public class CustomizationItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.CUSTOMIZATION_SET:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _customizationCallbacks.SetCustomisation(
+                    customizationCallbacks.SetCustomisation(
                         pmcData,
                         body as CustomizationSetRequest,
                         sessionID

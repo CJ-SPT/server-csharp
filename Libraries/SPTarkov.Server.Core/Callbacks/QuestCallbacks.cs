@@ -1,5 +1,6 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
 using SPTarkov.Server.Core.Models.Eft.Quests;
@@ -9,9 +10,9 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
 public class QuestCallbacks(
-    HttpResponseUtil _httpResponseUtil,
-    QuestController _questController,
-    RepeatableQuestController _repeatableQuestController
+    HttpResponseUtil httpResponseUtil,
+    QuestController questController,
+    RepeatableQuestController repeatableQuestController
 )
 {
     /// <summary>
@@ -24,10 +25,10 @@ public class QuestCallbacks(
     public ItemEventRouterResponse ChangeRepeatableQuest(
         PmcData pmcData,
         RepeatableQuestChangeRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _repeatableQuestController.ChangeRepeatableQuest(pmcData, info, sessionID);
+        return repeatableQuestController.ChangeRepeatableQuest(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -40,15 +41,15 @@ public class QuestCallbacks(
     public ItemEventRouterResponse AcceptQuest(
         PmcData pmcData,
         AcceptQuestRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
         if (info.Type == "repeatable")
         {
-            return _repeatableQuestController.AcceptRepeatableQuest(pmcData, info, sessionID);
+            return repeatableQuestController.AcceptRepeatableQuest(pmcData, info, sessionID);
         }
 
-        return _questController.AcceptQuest(pmcData, info, sessionID);
+        return questController.AcceptQuest(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -61,10 +62,10 @@ public class QuestCallbacks(
     public ItemEventRouterResponse CompleteQuest(
         PmcData pmcData,
         CompleteQuestRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _questController.CompleteQuest(pmcData, info, sessionID);
+        return questController.CompleteQuest(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -77,10 +78,10 @@ public class QuestCallbacks(
     public ItemEventRouterResponse HandoverQuest(
         PmcData pmcData,
         HandoverQuestRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _questController.HandoverQuest(pmcData, info, sessionID);
+        return questController.HandoverQuest(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -90,10 +91,10 @@ public class QuestCallbacks(
     /// <param name="info"></param>
     /// <param name="sessionID">Session/player id</param>
     /// <returns></returns>
-    public ValueTask<string> ListQuests(string url, ListQuestsRequestData info, string sessionID)
+    public ValueTask<string> ListQuests(string url, ListQuestsRequestData info, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_questController.GetClientQuests(sessionID))
+            httpResponseUtil.GetBody(questController.GetClientQuests(sessionID))
         );
     }
 
@@ -104,12 +105,10 @@ public class QuestCallbacks(
     /// <param name="info"></param>
     /// <param name="sessionID">Session/player id</param>
     /// <returns></returns>
-    public ValueTask<string> ActivityPeriods(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> ActivityPeriods(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(
-                _repeatableQuestController.GetClientRepeatableQuests(sessionID)
-            )
+            httpResponseUtil.GetBody(repeatableQuestController.GetClientRepeatableQuests(sessionID))
         );
     }
 }

@@ -14,15 +14,15 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable(TypePriority = OnUpdateOrder.BtrDeliveryCallbacks)]
 public class BtrDeliveryCallbacks(
-    ISptLogger<BtrDeliveryCallbacks> _logger,
-    BtrDeliveryService _btrDeliveryService,
-    TimeUtil _timeUtil,
-    ConfigServer _configServer,
-    SaveServer _saveServer
+    ISptLogger<BtrDeliveryCallbacks> logger,
+    BtrDeliveryService btrDeliveryService,
+    TimeUtil timeUtil,
+    ConfigServer configServer,
+    SaveServer saveServer
 ) : IOnUpdate
 {
     private readonly BtrDeliveryConfig _btrDeliveryConfig =
-        _configServer.GetConfig<BtrDeliveryConfig>();
+        configServer.GetConfig<BtrDeliveryConfig>();
 
     public Task<bool> OnUpdate(long secondsSinceLastRun)
     {
@@ -42,7 +42,7 @@ public class BtrDeliveryCallbacks(
     protected void ProcessDeliveries()
     {
         // Process each installed profile.
-        foreach (var sessionId in _saveServer.GetProfiles())
+        foreach (var sessionId in saveServer.GetProfiles())
         {
             ProcessDeliveryByProfile(sessionId.Key);
         }
@@ -52,7 +52,7 @@ public class BtrDeliveryCallbacks(
     /// Process delivery items of a single profile prior to being given back to the player through the mail service
     /// </summary>
     /// <param name="sessionId">Player id</param>
-    public void ProcessDeliveryByProfile(string sessionId)
+    public void ProcessDeliveryByProfile(MongoId sessionId)
     {
         // Filter out items that don't need to be processed yet.
         var toBeProcessed = FilterDeliveryItems(sessionId);
@@ -71,16 +71,16 @@ public class BtrDeliveryCallbacks(
     /// </summary>
     /// <param name="sessionId">Session/Player id</param>
     /// <returns>All delivery items that are ready to be processed</returns>
-    protected List<BtrDelivery> FilterDeliveryItems(string sessionId)
+    protected List<BtrDelivery> FilterDeliveryItems(MongoId sessionId)
     {
-        var currentTime = _timeUtil.GetTimeStamp();
+        var currentTime = timeUtil.GetTimeStamp();
 
-        var deliveryList = _saveServer.GetProfile(sessionId).BtrDeliveryList;
+        var deliveryList = saveServer.GetProfile(sessionId).BtrDeliveryList;
         if (deliveryList != null && deliveryList!.Count > 0)
         {
-            if (_logger.IsLogEnabled(LogLevel.Debug))
+            if (logger.IsLogEnabled(LogLevel.Debug))
             {
-                _logger.Debug(
+                logger.Debug(
                     $"Found {deliveryList.Count} BTR delivery package(s) in profile {sessionId}"
                 );
             }
@@ -97,11 +97,11 @@ public class BtrDeliveryCallbacks(
     /// </summary>
     /// <param name="packagesToBeDelivered">The delivery items to process</param>
     /// <param name="sessionId">session ID that should receive the processed items</param>
-    protected void ProcessDeliveryItems(List<BtrDelivery> packagesToBeDelivered, string sessionId)
+    protected void ProcessDeliveryItems(List<BtrDelivery> packagesToBeDelivered, MongoId sessionId)
     {
-        if (_logger.IsLogEnabled(LogLevel.Debug))
+        if (logger.IsLogEnabled(LogLevel.Debug))
         {
-            _logger.Debug(
+            logger.Debug(
                 $"Processing {packagesToBeDelivered.Count} BTR delivery package(s), which include a total of: {packagesToBeDelivered.Select(items => items.Items).Count()} items, in profile: {sessionId}"
             );
         }
@@ -115,10 +115,10 @@ public class BtrDeliveryCallbacks(
             // Update the delivery items to have the new root parent ID for root/orphaned items
             package.Items = package.Items.AdoptOrphanedItems(rootItemParentId);
 
-            _btrDeliveryService.SendBTRDelivery(sessionId, package.Items);
+            btrDeliveryService.SendBTRDelivery(sessionId, package.Items);
 
             // Remove the fully processed BTR delivery package from the profile.
-            _btrDeliveryService.RemoveBTRDeliveryPackageFromProfile(sessionId, package);
+            btrDeliveryService.RemoveBTRDeliveryPackageFromProfile(sessionId, package);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Spt.Config;
 using SPTarkov.Server.Core.Servers;
@@ -10,22 +11,22 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable(TypePriority = OnLoadOrder.TraderCallbacks)]
 public class TraderCallbacks(
-    HttpResponseUtil _httpResponseUtil,
-    TraderController _traderController,
-    ConfigServer _configServer
+    HttpResponseUtil httpResponseUtil,
+    TraderController traderController,
+    ConfigServer configServer
 ) : IOnLoad, IOnUpdate
 {
-    private readonly TraderConfig _traderConfig = _configServer.GetConfig<TraderConfig>();
+    private readonly TraderConfig _traderConfig = configServer.GetConfig<TraderConfig>();
 
     public Task OnLoad()
     {
-        _traderController.Load();
+        traderController.Load();
         return Task.CompletedTask;
     }
 
     public Task<bool> OnUpdate(long _)
     {
-        _traderController.Update();
+        traderController.Update();
 
         return Task.FromResult(true);
     }
@@ -33,21 +34,21 @@ public class TraderCallbacks(
     /// <summary>
     ///     Handle client/trading/api/traderSettings
     /// </summary>
-    public ValueTask<string> GetTraderSettings(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTraderSettings(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_traderController.GetAllTraders(sessionID))
+            httpResponseUtil.GetBody(traderController.GetAllTraders(sessionID))
         );
     }
 
     /// <summary>
     ///     Handle client/trading/api/getTrader
     /// </summary>
-    public ValueTask<string> GetTrader(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTrader(string url, EmptyRequestData _, MongoId sessionID)
     {
         var traderID = url.Replace("/client/trading/api/getTrader/", "");
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_traderController.GetTrader(sessionID, traderID))
+            httpResponseUtil.GetBody(traderController.GetTrader(sessionID, traderID))
         );
     }
 
@@ -55,11 +56,11 @@ public class TraderCallbacks(
     ///     Handle client/trading/api/getTraderAssort
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetAssort(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetAssort(string url, EmptyRequestData _, MongoId sessionID)
     {
         var traderID = url.Replace("/client/trading/api/getTraderAssort/", "");
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_traderController.GetAssort(sessionID, traderID))
+            httpResponseUtil.GetBody(traderController.GetAssort(sessionID, traderID))
         );
     }
 
@@ -70,8 +71,8 @@ public class TraderCallbacks(
     /// <param name="info"></param>
     /// <param name="sessionID">Session/player id</param>
     /// <returns></returns>
-    public ValueTask<string> GetModdedTraderData(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetModdedTraderData(string url, EmptyRequestData _, MongoId sessionID)
     {
-        return new ValueTask<string>(_httpResponseUtil.NoBody(_traderConfig.ModdedTraders));
+        return new ValueTask<string>(httpResponseUtil.NoBody(_traderConfig.ModdedTraders));
     }
 }

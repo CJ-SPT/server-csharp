@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -10,15 +11,8 @@ using SPTarkov.Server.Core.Models.Enums;
 namespace SPTarkov.Server.Core.Routers.ItemEvents;
 
 [Injectable]
-public class RepairItemEventRouter : ItemEventRouterDefinition
+public class RepairItemEventRouter(RepairCallbacks repairCallbacks) : ItemEventRouterDefinition
 {
-    protected RepairCallbacks _repairCallbacks;
-
-    public RepairItemEventRouter(RepairCallbacks repairCallbacks)
-    {
-        _repairCallbacks = repairCallbacks;
-    }
-
     protected override List<HandledRoute> GetHandledRoutes()
     {
         return new List<HandledRoute>
@@ -32,7 +26,7 @@ public class RepairItemEventRouter : ItemEventRouterDefinition
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     )
     {
@@ -40,11 +34,11 @@ public class RepairItemEventRouter : ItemEventRouterDefinition
         {
             case ItemEventActions.REPAIR:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _repairCallbacks.Repair(pmcData, body as RepairActionDataRequest, sessionID)
+                    repairCallbacks.Repair(pmcData, body as RepairActionDataRequest, sessionID)
                 );
             case ItemEventActions.TRADER_REPAIR:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _repairCallbacks.TraderRepair(
+                    repairCallbacks.TraderRepair(
                         pmcData,
                         body as TraderRepairActionDataRequest,
                         sessionID

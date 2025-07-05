@@ -8,17 +8,17 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable(TypePriority = OnLoadOrder.SaveCallbacks)]
 public class SaveCallbacks(
-    SaveServer _saveServer,
-    ConfigServer _configServer,
-    BackupService _backupService
+    SaveServer saveServer,
+    ConfigServer configServer,
+    BackupService backupService
 ) : IOnLoad, IOnUpdate
 {
-    private readonly CoreConfig _coreConfig = _configServer.GetConfig<CoreConfig>();
+    private readonly CoreConfig _coreConfig = configServer.GetConfig<CoreConfig>();
 
     public async Task OnLoad()
     {
-        await _backupService.StartBackupSystem();
-        await _saveServer.LoadAsync();
+        await backupService.StartBackupSystem();
+        await saveServer.LoadAsync();
     }
 
     public async Task<bool> OnUpdate(long secondsSinceLastRun)
@@ -29,7 +29,7 @@ public class SaveCallbacks(
             return false;
         }
 
-        await _saveServer.SaveAsync();
+        await saveServer.SaveAsync();
 
         return true;
     }

@@ -1,5 +1,6 @@
 ﻿using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
 using SPTarkov.Server.Core.Models.Eft.Repair;
@@ -20,7 +21,7 @@ public class RepairCallbacks(RepairController _repairController)
     public ItemEventRouterResponse TraderRepair(
         PmcData pmcData,
         TraderRepairActionDataRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return _repairController.TraderRepair(sessionID, info, pmcData);
@@ -37,7 +38,7 @@ public class RepairCallbacks(RepairController _repairController)
     public ItemEventRouterResponse Repair(
         PmcData pmcData,
         RepairActionDataRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return _repairController.RepairWithKit(sessionID, info, pmcData);

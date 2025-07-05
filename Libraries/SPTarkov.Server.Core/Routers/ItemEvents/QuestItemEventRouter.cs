@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -10,15 +11,8 @@ using SPTarkov.Server.Core.Models.Enums;
 namespace SPTarkov.Server.Core.Routers.ItemEvents;
 
 [Injectable]
-public class QuestItemEventRouter : ItemEventRouterDefinition
+public class QuestItemEventRouter(QuestCallbacks questCallbacks) : ItemEventRouterDefinition
 {
-    protected QuestCallbacks _questCallbacks;
-
-    public QuestItemEventRouter(QuestCallbacks questCallbacks)
-    {
-        _questCallbacks = questCallbacks;
-    }
-
     protected override List<HandledRoute> GetHandledRoutes()
     {
         return new List<HandledRoute>
@@ -34,7 +28,7 @@ public class QuestItemEventRouter : ItemEventRouterDefinition
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     )
     {
@@ -42,11 +36,11 @@ public class QuestItemEventRouter : ItemEventRouterDefinition
         {
             case ItemEventActions.QUEST_ACCEPT:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _questCallbacks.AcceptQuest(pmcData, body as AcceptQuestRequestData, sessionID)
+                    questCallbacks.AcceptQuest(pmcData, body as AcceptQuestRequestData, sessionID)
                 );
             case ItemEventActions.QUEST_COMPLETE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _questCallbacks.CompleteQuest(
+                    questCallbacks.CompleteQuest(
                         pmcData,
                         body as CompleteQuestRequestData,
                         sessionID
@@ -54,7 +48,7 @@ public class QuestItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.QUEST_HANDOVER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _questCallbacks.HandoverQuest(
+                    questCallbacks.HandoverQuest(
                         pmcData,
                         body as HandoverQuestRequestData,
                         sessionID
@@ -62,7 +56,7 @@ public class QuestItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.REPEATABLE_QUEST_CHANGE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _questCallbacks.ChangeRepeatableQuest(
+                    questCallbacks.ChangeRepeatableQuest(
                         pmcData,
                         body as RepeatableQuestChangeRequest,
                         sessionID

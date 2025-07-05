@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.Hideout;
@@ -12,20 +13,11 @@ using SPTarkov.Server.Core.Models.Enums;
 namespace SPTarkov.Server.Core.Routers.ItemEvents;
 
 [Injectable]
-public class InventoryItemEventRouter : ItemEventRouterDefinition
+public class InventoryItemEventRouter(
+    InventoryCallbacks inventoryCallbacks,
+    HideoutCallbacks hideoutCallbacks
+) : ItemEventRouterDefinition
 {
-    protected HideoutCallbacks _hideoutCallbacks;
-    protected InventoryCallbacks _inventoryCallbacks;
-
-    public InventoryItemEventRouter(
-        InventoryCallbacks inventoryCallbacks,
-        HideoutCallbacks hideoutCallbacks
-    )
-    {
-        _inventoryCallbacks = inventoryCallbacks;
-        _hideoutCallbacks = hideoutCallbacks;
-    }
-
     protected override List<HandledRoute> GetHandledRoutes()
     {
         return new List<HandledRoute>
@@ -60,7 +52,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     )
     {
@@ -68,7 +60,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
         {
             case ItemEventActions.MOVE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.MoveItem(
+                    inventoryCallbacks.MoveItem(
                         pmcData,
                         body as InventoryMoveRequestData,
                         sessionID,
@@ -77,7 +69,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.REMOVE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.RemoveItem(
+                    inventoryCallbacks.RemoveItem(
                         pmcData,
                         body as InventoryRemoveRequestData,
                         sessionID,
@@ -86,7 +78,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.SPLIT:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.SplitItem(
+                    inventoryCallbacks.SplitItem(
                         pmcData,
                         body as InventorySplitRequestData,
                         sessionID,
@@ -95,7 +87,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.MERGE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.MergeItem(
+                    inventoryCallbacks.MergeItem(
                         pmcData,
                         body as InventoryMergeRequestData,
                         sessionID,
@@ -104,7 +96,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.TRANSFER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.TransferItem(
+                    inventoryCallbacks.TransferItem(
                         pmcData,
                         body as InventoryTransferRequestData,
                         sessionID,
@@ -113,7 +105,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.SWAP:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.SwapItem(
+                    inventoryCallbacks.SwapItem(
                         pmcData,
                         body as InventorySwapRequestData,
                         sessionID
@@ -121,7 +113,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.FOLD:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.FoldItem(
+                    inventoryCallbacks.FoldItem(
                         pmcData,
                         body as InventoryFoldRequestData,
                         sessionID
@@ -129,7 +121,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.TOGGLE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.ToggleItem(
+                    inventoryCallbacks.ToggleItem(
                         pmcData,
                         body as InventoryToggleRequestData,
                         sessionID
@@ -137,11 +129,11 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.TAG:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.TagItem(pmcData, body as InventoryTagRequestData, sessionID)
+                    inventoryCallbacks.TagItem(pmcData, body as InventoryTagRequestData, sessionID)
                 );
             case ItemEventActions.BIND:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.BindItem(
+                    inventoryCallbacks.BindItem(
                         pmcData,
                         body as InventoryBindRequestData,
                         sessionID,
@@ -150,7 +142,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.UNBIND:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.UnBindItem(
+                    inventoryCallbacks.UnBindItem(
                         pmcData,
                         body as InventoryBindRequestData,
                         sessionID,
@@ -159,7 +151,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.EXAMINE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.ExamineItem(
+                    inventoryCallbacks.ExamineItem(
                         pmcData,
                         body as InventoryExamineRequestData,
                         sessionID,
@@ -168,7 +160,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.READ_ENCYCLOPEDIA:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.ReadEncyclopedia(
+                    inventoryCallbacks.ReadEncyclopedia(
                         pmcData,
                         body as InventoryReadEncyclopediaRequestData,
                         sessionID
@@ -176,7 +168,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.APPLY_INVENTORY_CHANGES:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.SortInventory(
+                    inventoryCallbacks.SortInventory(
                         pmcData,
                         body as InventorySortRequestData,
                         sessionID,
@@ -185,7 +177,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.CREATE_MAP_MARKER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.CreateMapMarker(
+                    inventoryCallbacks.CreateMapMarker(
                         pmcData,
                         body as InventoryCreateMarkerRequestData,
                         sessionID,
@@ -194,7 +186,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.DELETE_MAP_MARKER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.DeleteMapMarker(
+                    inventoryCallbacks.DeleteMapMarker(
                         pmcData,
                         body as InventoryDeleteMarkerRequestData,
                         sessionID,
@@ -203,7 +195,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.EDIT_MAP_MARKER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.EditMapMarker(
+                    inventoryCallbacks.EditMapMarker(
                         pmcData,
                         body as InventoryEditMarkerRequestData,
                         sessionID,
@@ -212,7 +204,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.OPEN_RANDOM_LOOT_CONTAINER:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.OpenRandomLootContainer(
+                    inventoryCallbacks.OpenRandomLootContainer(
                         pmcData,
                         body as OpenRandomLootContainerRequestData,
                         sessionID,
@@ -221,7 +213,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.HIDEOUT_QTE_EVENT:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.HandleQTEEvent(
+                    hideoutCallbacks.HandleQTEEvent(
                         pmcData,
                         body as HandleQTEEventRequestData,
                         sessionID,
@@ -230,7 +222,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.REDEEM_PROFILE_REWARD:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.RedeemProfileReward(
+                    inventoryCallbacks.RedeemProfileReward(
                         pmcData,
                         body as RedeemProfileRequestData,
                         sessionID,
@@ -239,7 +231,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.SET_FAVORITE_ITEMS:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.SetFavoriteItem(
+                    inventoryCallbacks.SetFavoriteItem(
                         pmcData,
                         body as SetFavoriteItems,
                         sessionID,
@@ -248,7 +240,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.QUEST_FAIL:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.FailQuest(
+                    inventoryCallbacks.FailQuest(
                         pmcData,
                         body as FailQuestRequestData,
                         sessionID,
@@ -257,7 +249,7 @@ public class InventoryItemEventRouter : ItemEventRouterDefinition
                 );
             case ItemEventActions.PIN_LOCK:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _inventoryCallbacks.PinOrLock(
+                    inventoryCallbacks.PinOrLock(
                         pmcData,
                         body as PinOrLockItemRequest,
                         sessionID,

@@ -1,5 +1,6 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 
 namespace SPTarkov.Server.Core.Routers;
 
@@ -34,7 +35,7 @@ public class HttpRouter
     }
     */
 
-    public async ValueTask<string?> GetResponse(HttpRequest req, string sessionID, string? body)
+    public async ValueTask<string?> GetResponse(HttpRequest req, MongoId sessionID, string? body)
     {
         var wrapper = new ResponseWrapper("");
 
@@ -49,7 +50,7 @@ public class HttpRouter
 
     protected async ValueTask<bool> HandleRoute(
         HttpRequest request,
-        string sessionID,
+        MongoId sessionID,
         ResponseWrapper wrapper,
         IEnumerable<Router> routers,
         bool dynamic,

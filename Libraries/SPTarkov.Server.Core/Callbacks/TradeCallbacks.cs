@@ -1,5 +1,6 @@
 ﻿using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
 using SPTarkov.Server.Core.Models.Eft.Trade;
@@ -7,7 +8,7 @@ using SPTarkov.Server.Core.Models.Eft.Trade;
 namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
-public class TradeCallbacks(TradeController _tradeController)
+public class TradeCallbacks(TradeController tradeController)
 {
     /// <summary>
     ///     Handle client/game/profile/items/moving TradingConfirm event
@@ -19,10 +20,10 @@ public class TradeCallbacks(TradeController _tradeController)
     public ItemEventRouterResponse ProcessTrade(
         PmcData pmcData,
         ProcessBaseTradeRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _tradeController.ConfirmTrading(pmcData, info, sessionID);
+        return tradeController.ConfirmTrading(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -35,10 +36,10 @@ public class TradeCallbacks(TradeController _tradeController)
     public ItemEventRouterResponse ProcessRagfairTrade(
         PmcData pmcData,
         ProcessRagfairTradeRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _tradeController.ConfirmRagfairTrading(pmcData, info, sessionID);
+        return tradeController.ConfirmRagfairTrading(pmcData, info, sessionID);
     }
 
     /// <summary>
@@ -51,9 +52,9 @@ public class TradeCallbacks(TradeController _tradeController)
     public ItemEventRouterResponse SellAllFromSavage(
         PmcData pmcData,
         SellScavItemsToFenceRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        return _tradeController.SellScavItemsToFence(pmcData, info, sessionID);
+        return tradeController.SellScavItemsToFence(pmcData, info, sessionID);
     }
 }

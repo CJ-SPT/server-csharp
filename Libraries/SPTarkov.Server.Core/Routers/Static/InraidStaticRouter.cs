@@ -10,14 +10,14 @@ namespace SPTarkov.Server.Core.Routers.Static;
 [Injectable]
 public class InraidStaticRouter : StaticRouter
 {
-    public InraidStaticRouter(InraidCallbacks inraidCallbacks, JsonUtil jsonUtil)
+    public InraidStaticRouter(InraidCallbacks inRaidCallbacks, JsonUtil jsonUtil)
         : base(
             jsonUtil,
             [
                 new RouteAction(
                     "/raid/profile/scavsave",
                     async (url, info, sessionID, output) =>
-                        await inraidCallbacks.SaveProgress(
+                        await inRaidCallbacks.SaveProgress(
                             url,
                             info as ScavSaveRequestData,
                             sessionID
@@ -27,12 +27,12 @@ public class InraidStaticRouter : StaticRouter
                 new RouteAction(
                     "/singleplayer/settings/raid/menu",
                     async (url, info, sessionID, output) =>
-                        await inraidCallbacks.GetRaidMenuSettings()
+                        await inRaidCallbacks.GetRaidMenuSettings()
                 ),
                 new RouteAction(
                     "/singleplayer/scav/traitorscavhostile",
                     async (url, info, sessionID, output) =>
-                        await inraidCallbacks.GetTraitorScavHostileChance(
+                        await inRaidCallbacks.GetTraitorScavHostileChance(
                             url,
                             info as EmptyRequestData,
                             sessionID
@@ -41,7 +41,7 @@ public class InraidStaticRouter : StaticRouter
                 new RouteAction(
                     "/singleplayer/bosstypes",
                     async (url, info, sessionID, output) =>
-                        await inraidCallbacks.GetBossTypes(url, info as EmptyRequestData, sessionID)
+                        await inRaidCallbacks.GetBossTypes(url, info as EmptyRequestData, sessionID)
                 ),
             ]
         ) { }

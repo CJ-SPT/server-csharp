@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Request;
 using SPTarkov.Server.Core.Models.Eft.Hideout;
@@ -10,15 +11,8 @@ using SPTarkov.Server.Core.Models.Enums;
 namespace SPTarkov.Server.Core.Routers.ItemEvents;
 
 [Injectable]
-public class HideoutItemEventRouter : ItemEventRouterDefinition
+public class HideoutItemEventRouter(HideoutCallbacks hideoutCallbacks) : ItemEventRouterDefinition
 {
-    protected HideoutCallbacks _hideoutCallbacks;
-
-    public HideoutItemEventRouter(HideoutCallbacks hideoutCallbacks)
-    {
-        _hideoutCallbacks = hideoutCallbacks;
-    }
-
     protected override List<HandledRoute> GetHandledRoutes()
     {
         return
@@ -46,7 +40,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
         string url,
         PmcData pmcData,
         BaseInteractionRequestData body,
-        string sessionID,
+        MongoId sessionID,
         ItemEventRouterResponse output
     )
     {
@@ -54,7 +48,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
         {
             case HideoutEventActions.HIDEOUT_UPGRADE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.Upgrade(
+                    hideoutCallbacks.Upgrade(
                         pmcData,
                         body as HideoutUpgradeRequestData,
                         sessionID,
@@ -63,7 +57,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_UPGRADE_COMPLETE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.UpgradeComplete(
+                    hideoutCallbacks.UpgradeComplete(
                         pmcData,
                         body as HideoutUpgradeCompleteRequestData,
                         sessionID,
@@ -72,7 +66,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_PUT_ITEMS_IN_AREA_SLOTS:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.PutItemsInAreaSlots(
+                    hideoutCallbacks.PutItemsInAreaSlots(
                         pmcData,
                         body as HideoutPutItemInRequestData,
                         sessionID
@@ -80,7 +74,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_TAKE_ITEMS_FROM_AREA_SLOTS:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.TakeItemsFromAreaSlots(
+                    hideoutCallbacks.TakeItemsFromAreaSlots(
                         pmcData,
                         body as HideoutTakeItemOutRequestData,
                         sessionID
@@ -88,7 +82,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_TOGGLE_AREA:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.ToggleArea(
+                    hideoutCallbacks.ToggleArea(
                         pmcData,
                         body as HideoutToggleAreaRequestData,
                         sessionID
@@ -96,7 +90,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_SINGLE_PRODUCTION_START:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.SingleProductionStart(
+                    hideoutCallbacks.SingleProductionStart(
                         pmcData,
                         body as HideoutSingleProductionStartRequestData,
                         sessionID
@@ -104,7 +98,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_SCAV_CASE_PRODUCTION_START:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.ScavCaseProductionStart(
+                    hideoutCallbacks.ScavCaseProductionStart(
                         pmcData,
                         body as HideoutScavCaseStartRequestData,
                         sessionID
@@ -112,7 +106,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_CONTINUOUS_PRODUCTION_START:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.ContinuousProductionStart(
+                    hideoutCallbacks.ContinuousProductionStart(
                         pmcData,
                         body as HideoutContinuousProductionStartRequestData,
                         sessionID
@@ -120,7 +114,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_TAKE_PRODUCTION:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.TakeProduction(
+                    hideoutCallbacks.TakeProduction(
                         pmcData,
                         body as HideoutTakeProductionRequestData,
                         sessionID
@@ -128,7 +122,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_RECORD_SHOOTING_RANGE_POINTS:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.RecordShootingRangePoints(
+                    hideoutCallbacks.RecordShootingRangePoints(
                         pmcData,
                         body as RecordShootingRangePoints,
                         sessionID,
@@ -137,7 +131,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_IMPROVE_AREA:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.ImproveArea(
+                    hideoutCallbacks.ImproveArea(
                         pmcData,
                         body as HideoutImproveAreaRequestData,
                         sessionID
@@ -145,7 +139,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_CANCEL_PRODUCTION_COMMAND:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.CancelProduction(
+                    hideoutCallbacks.CancelProduction(
                         pmcData,
                         body as HideoutCancelProductionRequestData,
                         sessionID
@@ -153,7 +147,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_CIRCLE_OF_CULTIST_PRODUCTION_START:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.CicleOfCultistProductionStart(
+                    hideoutCallbacks.CicleOfCultistProductionStart(
                         pmcData,
                         body as HideoutCircleOfCultistProductionStartRequestData,
                         sessionID
@@ -161,7 +155,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_DELETE_PRODUCTION_COMMAND:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.HideoutDeleteProductionCommand(
+                    hideoutCallbacks.HideoutDeleteProductionCommand(
                         pmcData,
                         body as HideoutDeleteProductionRequestData,
                         sessionID
@@ -169,7 +163,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_CUSTOMIZATION_APPLY_COMMAND:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.HideoutCustomizationApplyCommand(
+                    hideoutCallbacks.HideoutCustomizationApplyCommand(
                         pmcData,
                         body as HideoutCustomizationApplyRequestData,
                         sessionID
@@ -177,7 +171,7 @@ public class HideoutItemEventRouter : ItemEventRouterDefinition
                 );
             case HideoutEventActions.HIDEOUT_CUSTOMIZATION_SET_MANNEQUIN_POSE:
                 return new ValueTask<ItemEventRouterResponse>(
-                    _hideoutCallbacks.HideoutCustomizationSetMannequinPose(
+                    hideoutCallbacks.HideoutCustomizationSetMannequinPose(
                         pmcData,
                         body as HideoutCustomizationSetMannequinPoseRequest,
                         sessionID

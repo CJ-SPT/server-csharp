@@ -1,6 +1,7 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Launcher;
 using SPTarkov.Server.Core.Models.Eft.Profile;
@@ -12,10 +13,10 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
 public class ProfileCallbacks(
-    HttpResponseUtil _httpResponse,
-    TimeUtil _timeUtil,
-    ProfileController _profileController,
-    ProfileHelper _profileHelper
+    HttpResponseUtil httpResponse,
+    TimeUtil timeUtil,
+    ProfileController profileController,
+    ProfileHelper profileHelper
 )
 {
     /// <summary>
@@ -25,11 +26,11 @@ public class ProfileCallbacks(
     public async ValueTask<string> CreateProfile(
         string url,
         ProfileCreateRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        var id = await _profileController.CreateProfile(info, sessionID);
-        return _httpResponse.GetBody(new CreateProfileResponse { UserId = id });
+        var id = await profileController.CreateProfile(info, sessionID);
+        return httpResponse.GetBody(new CreateProfileResponse { UserId = id });
     }
 
     /// <summary>
@@ -37,10 +38,10 @@ public class ProfileCallbacks(
     ///     Get the complete player profile (scav + pmc character)
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetProfileData(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetProfileData(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponse.GetBody(_profileController.GetCompleteProfile(sessionID))
+            httpResponse.GetBody(profileController.GetCompleteProfile(sessionID))
         );
     }
 
@@ -50,11 +51,11 @@ public class ProfileCallbacks(
     ///     Occurs post-raid and when profile first created immediately after character details are confirmed by player
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> RegenerateScav(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> RegenerateScav(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponse.GetBody(
-                new List<PmcData> { _profileController.GeneratePlayerScav(sessionID) }
+            httpResponse.GetBody(
+                new List<PmcData> { profileController.GeneratePlayerScav(sessionID) }
             )
         );
     }
@@ -66,11 +67,11 @@ public class ProfileCallbacks(
     public ValueTask<string> ChangeVoice(
         string url,
         ProfileChangeVoiceRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
-        _profileController.ChangeVoice(info, sessionID);
-        return new ValueTask<string>(_httpResponse.NullResponse());
+        profileController.ChangeVoice(info, sessionID);
+        return new ValueTask<string>(httpResponse.NullResponse());
     }
 
     /// <summary>
@@ -81,30 +82,30 @@ public class ProfileCallbacks(
     public ValueTask<string> ChangeNickname(
         string url,
         ProfileChangeNicknameRequestData info,
-        string sessionId
+        MongoId sessionId
     )
     {
-        var output = _profileController.ChangeNickname(info, sessionId);
+        var output = profileController.ChangeNickname(info, sessionId);
 
         return output switch
         {
             NicknameValidationResult.Taken => new ValueTask<string>(
-                _httpResponse.GetBody<object?>(
+                httpResponse.GetBody<object?>(
                     null,
                     BackendErrorCodes.NicknameNotUnique,
                     $"{BackendErrorCodes.NicknameNotUnique} - "
                 )
             ),
             NicknameValidationResult.Short => new ValueTask<string>(
-                _httpResponse.GetBody<object?>(
+                httpResponse.GetBody<object?>(
                     null,
                     BackendErrorCodes.NicknameNotValid,
                     $"{BackendErrorCodes.NicknameNotValid} - "
                 )
             ),
             _ => new ValueTask<string>(
-                _httpResponse.GetBody<object>(
-                    new { status = 0, NicknameChangeDate = _timeUtil.GetTimeStamp() }
+                httpResponse.GetBody<object>(
+                    new { status = 0, NicknameChangeDate = timeUtil.GetTimeStamp() }
                 )
             ),
         };
@@ -117,26 +118,26 @@ public class ProfileCallbacks(
     public ValueTask<string> ValidateNickname(
         string url,
         ValidateNicknameRequestData info,
-        string sessionId
+        MongoId sessionId
     )
     {
-        return _profileController.ValidateNickname(info, sessionId) switch
+        return profileController.ValidateNickname(info, sessionId) switch
         {
             NicknameValidationResult.Taken => new ValueTask<string>(
-                _httpResponse.GetBody<object?>(
+                httpResponse.GetBody<object?>(
                     null,
                     BackendErrorCodes.NicknameNotUnique,
                     $"{BackendErrorCodes.NicknameNotUnique} - "
                 )
             ),
             NicknameValidationResult.Short => new ValueTask<string>(
-                _httpResponse.GetBody<object?>(
+                httpResponse.GetBody<object?>(
                     null,
                     BackendErrorCodes.NicknameNotValid,
                     $"{BackendErrorCodes.NicknameNotValid} - "
                 )
             ),
-            _ => new ValueTask<string>(_httpResponse.GetBody(new { status = "ok" })),
+            _ => new ValueTask<string>(httpResponse.GetBody(new { status = "ok" })),
         };
     }
 
@@ -144,16 +145,16 @@ public class ProfileCallbacks(
     ///     Handle client/game/profile/nickname/reserved
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetReservedNickname(string url, EmptyRequestData _, string sessionId)
+    public ValueTask<string> GetReservedNickname(string url, EmptyRequestData _, MongoId sessionId)
     {
-        var fullProfile = _profileHelper.GetFullProfile(sessionId);
+        var fullProfile = profileHelper.GetFullProfile(sessionId);
         if (fullProfile?.ProfileInfo?.Username is not null)
         {
             // Send players name back to them
-            return new ValueTask<string>(_httpResponse.GetBody(fullProfile?.ProfileInfo?.Username));
+            return new ValueTask<string>(httpResponse.GetBody(fullProfile?.ProfileInfo?.Username));
         }
 
-        return new ValueTask<string>(_httpResponse.GetBody("SPTarkov"));
+        return new ValueTask<string>(httpResponse.GetBody("SPTarkov"));
     }
 
     /// <summary>
@@ -161,10 +162,10 @@ public class ProfileCallbacks(
     ///     Called when creating a character when choosing a character face/voice
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetProfileStatus(string url, EmptyRequestData _, string sessionId)
+    public ValueTask<string> GetProfileStatus(string url, EmptyRequestData _, MongoId sessionId)
     {
         return new ValueTask<string>(
-            _httpResponse.GetBody(_profileController.GetProfileStatus(sessionId))
+            httpResponse.GetBody(profileController.GetProfileStatus(sessionId))
         );
     }
 
@@ -176,11 +177,11 @@ public class ProfileCallbacks(
     public ValueTask<string> GetOtherProfile(
         string url,
         GetOtherProfileRequest request,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponse.GetBody(_profileController.GetOtherProfile(sessionID, request))
+            httpResponse.GetBody(profileController.GetOtherProfile(sessionID, request))
         );
     }
 
@@ -191,11 +192,11 @@ public class ProfileCallbacks(
     public ValueTask<string> GetProfileSettings(
         string url,
         GetProfileSettingsRequest info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponse.GetBody(_profileController.SetChosenProfileIcon(sessionID, info))
+            httpResponse.GetBody(profileController.SetChosenProfileIcon(sessionID, info))
         );
     }
 
@@ -206,11 +207,11 @@ public class ProfileCallbacks(
     public ValueTask<string> SearchProfiles(
         string url,
         SearchProfilesRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponse.GetBody(_profileController.SearchProfiles(info, sessionID))
+            httpResponse.GetBody(profileController.SearchProfiles(info, sessionID))
         );
     }
 
@@ -221,11 +222,11 @@ public class ProfileCallbacks(
     public ValueTask<string> GetMiniProfile(
         string url,
         GetMiniProfileRequestData info,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
-            _httpResponse.NoBody(_profileController.GetMiniProfile(sessionID))
+            httpResponse.NoBody(profileController.GetMiniProfile(sessionID))
         );
     }
 
@@ -233,8 +234,8 @@ public class ProfileCallbacks(
     ///     Handle /launcher/profiles
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetAllMiniProfiles(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetAllMiniProfiles(string url, EmptyRequestData _, MongoId sessionID)
     {
-        return new ValueTask<string>(_httpResponse.NoBody(_profileController.GetMiniProfiles()));
+        return new ValueTask<string>(httpResponse.NoBody(profileController.GetMiniProfiles()));
     }
 }

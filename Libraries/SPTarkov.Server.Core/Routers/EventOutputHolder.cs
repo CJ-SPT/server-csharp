@@ -1,5 +1,6 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -17,16 +18,16 @@ public class EventOutputHolder(
     ICloner cloner
 )
 {
-    protected readonly Dictionary<string, Dictionary<string, bool>> _clientActiveSessionStorage =
+    protected readonly Dictionary<MongoId, Dictionary<string, bool>> _clientActiveSessionStorage =
         new();
-    protected readonly Dictionary<string, ItemEventRouterResponse> _outputStore = new();
+    protected readonly Dictionary<MongoId, ItemEventRouterResponse> _outputStore = new();
 
     /// <summary>
     /// Get a fresh/empty response to send to the client
     /// </summary>
     /// <param name="sessionId">Player id</param>
     /// <returns>ItemEventRouterResponse</returns>
-    public ItemEventRouterResponse GetOutput(string sessionId)
+    public ItemEventRouterResponse GetOutput(MongoId sessionId)
     {
         if (_outputStore.TryGetValue(sessionId, out var result))
         {
@@ -40,7 +41,7 @@ public class EventOutputHolder(
         return result;
     }
 
-    public void ResetOutput(string sessionId)
+    public void ResetOutput(MongoId sessionId)
     {
         var pmcProfile = profileHelper.GetPmcProfile(sessionId);
 
@@ -92,7 +93,7 @@ public class EventOutputHolder(
     ///     Update output object with most recent values from player profile
     /// </summary>
     /// <param name="sessionId"> Session id </param>
-    public void UpdateOutputProperties(string sessionId)
+    public void UpdateOutputProperties(MongoId sessionId)
     {
         var pmcData = profileHelper.GetPmcProfile(sessionId);
         var profileChanges = _outputStore[sessionId].ProfileChanges[sessionId];
@@ -187,7 +188,7 @@ public class EventOutputHolder(
     /// <returns> Dictionary of hideout productions </returns>
     protected Dictionary<string, Production>? GetProductionsFromProfileAndFlagComplete(
         Dictionary<string, Production>? productions,
-        string sessionId
+        MongoId sessionId
     )
     {
         foreach (var production in productions)

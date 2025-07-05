@@ -1,5 +1,6 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Services;
 using SPTarkov.Server.Core.Utils;
@@ -8,20 +9,20 @@ namespace SPTarkov.Server.Core.Callbacks;
 
 [Injectable]
 public class DataCallbacks(
-    HttpResponseUtil _httpResponseUtil,
-    DatabaseService _databaseService,
-    TraderController _traderController,
-    HideoutController _hideoutController,
-    LocaleService _localeService
+    HttpResponseUtil httpResponseUtil,
+    DatabaseService databaseService,
+    TraderController traderController,
+    HideoutController hideoutController,
+    LocaleService localeService
 )
 {
     /// <summary>
     ///     Handle client/settings
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetSettings(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetSettings(string url, EmptyRequestData _, MongoId sessionID)
     {
-        var returns = _httpResponseUtil.GetBody(_databaseService.GetSettings());
+        var returns = httpResponseUtil.GetBody(databaseService.GetSettings());
         return new ValueTask<string>(returns);
     }
 
@@ -29,10 +30,10 @@ public class DataCallbacks(
     ///     Handle client/globals
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetGlobals(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetGlobals(string url, EmptyRequestData _, MongoId sessionID)
     {
-        var globals = _databaseService.GetGlobals();
-        var returns = _httpResponseUtil.GetBody(globals);
+        var globals = databaseService.GetGlobals();
+        var returns = httpResponseUtil.GetBody(globals);
 
         return new ValueTask<string>(returns);
     }
@@ -41,30 +42,28 @@ public class DataCallbacks(
     ///     Handle client/items
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetTemplateItems(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTemplateItems(string url, EmptyRequestData _, MongoId sessionID)
     {
-        return new ValueTask<string>(
-            _httpResponseUtil.GetUnclearedBody(_databaseService.GetItems())
-        );
+        return new ValueTask<string>(httpResponseUtil.GetUnclearedBody(databaseService.GetItems()));
     }
 
     /// <summary>
     ///     Handle client/handbook/templates
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetTemplateHandbook(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTemplateHandbook(string url, EmptyRequestData _, MongoId sessionID)
     {
-        return new ValueTask<string>(_httpResponseUtil.GetBody(_databaseService.GetHandbook()));
+        return new ValueTask<string>(httpResponseUtil.GetBody(databaseService.GetHandbook()));
     }
 
     /// <summary>
     ///     Handle client/customization
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetTemplateSuits(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTemplateSuits(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_databaseService.GetTemplates().Customization)
+            httpResponseUtil.GetBody(databaseService.GetTemplates().Customization)
         );
     }
 
@@ -72,10 +71,10 @@ public class DataCallbacks(
     ///     Handle client/account/customization
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetTemplateCharacter(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTemplateCharacter(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_databaseService.GetTemplates().Character)
+            httpResponseUtil.GetBody(databaseService.GetTemplates().Character)
         );
     }
 
@@ -83,10 +82,10 @@ public class DataCallbacks(
     ///     Handle client/hideout/settings
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetHideoutSettings(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetHideoutSettings(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_databaseService.GetHideout().Settings)
+            httpResponseUtil.GetBody(databaseService.GetHideout().Settings)
         );
     }
 
@@ -94,21 +93,19 @@ public class DataCallbacks(
     ///     Handle client/hideout/areas
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetHideoutAreas(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetHideoutAreas(string url, EmptyRequestData _, MongoId sessionID)
     {
-        return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_databaseService.GetHideout().Areas)
-        );
+        return new ValueTask<string>(httpResponseUtil.GetBody(databaseService.GetHideout().Areas));
     }
 
     /// <summary>
     ///     Handle client/hideout/production/recipes
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetHideoutProduction(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetHideoutProduction(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_databaseService.GetHideout().Production)
+            httpResponseUtil.GetBody(databaseService.GetHideout().Production)
         );
     }
 
@@ -116,10 +113,10 @@ public class DataCallbacks(
     ///     Handle client/languages
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetLocalesLanguages(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetLocalesLanguages(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_databaseService.GetLocales().Languages)
+            httpResponseUtil.GetBody(databaseService.GetLocales().Languages)
         );
     }
 
@@ -127,10 +124,10 @@ public class DataCallbacks(
     ///     Handle client/menu/locale
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetLocalesMenu(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetLocalesMenu(string url, EmptyRequestData _, MongoId sessionID)
     {
         var localeId = url.Replace("/client/menu/locale/", "");
-        var locales = _databaseService.GetLocales();
+        var locales = databaseService.GetLocales();
         var result =
             locales.Menu?[localeId] ?? locales.Menu?.FirstOrDefault(m => m.Key == "en").Value;
 
@@ -139,29 +136,29 @@ public class DataCallbacks(
             throw new Exception($"Unable to determine locale for request with {localeId}");
         }
 
-        return new ValueTask<string>(_httpResponseUtil.GetBody(result));
+        return new ValueTask<string>(httpResponseUtil.GetBody(result));
     }
 
     /// <summary>
     ///     Handle client/locale
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetLocalesGlobal(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetLocalesGlobal(string url, EmptyRequestData _, MongoId sessionID)
     {
         var localeId = url.Replace("/client/locale/", "");
-        var locales = _localeService.GetLocaleDb(localeId);
+        var locales = localeService.GetLocaleDb(localeId);
 
-        return new ValueTask<string>(_httpResponseUtil.GetUnclearedBody(locales));
+        return new ValueTask<string>(httpResponseUtil.GetUnclearedBody(locales));
     }
 
     /// <summary>
     ///     Handle client/hideout/qte/list
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetQteList(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetQteList(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
-            _httpResponseUtil.GetUnclearedBody(_hideoutController.GetQteList(sessionID))
+            httpResponseUtil.GetUnclearedBody(hideoutController.GetQteList(sessionID))
         );
     }
 
@@ -169,12 +166,12 @@ public class DataCallbacks(
     ///     Handle client/items/prices/
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetItemPrices(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetItemPrices(string url, EmptyRequestData _, MongoId sessionID)
     {
         var traderId = url.Replace("/client/items/prices/", "");
 
         return new ValueTask<string>(
-            _httpResponseUtil.GetBody(_traderController.GetItemPrices(sessionID, traderId))
+            httpResponseUtil.GetBody(traderController.GetItemPrices(sessionID, traderId))
         );
     }
 }

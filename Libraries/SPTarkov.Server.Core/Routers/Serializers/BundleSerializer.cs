@@ -1,6 +1,7 @@
 ﻿using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
 using SPTarkov.Server.Core.Loaders;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Utils;
 
@@ -13,7 +14,7 @@ public class BundleSerializer(
     HttpFileUtil httpFileUtil
 ) : ISerializer
 {
-    public async Task Serialize(string sessionID, HttpRequest req, HttpResponse resp, object? body)
+    public async Task Serialize(MongoId sessionID, HttpRequest req, HttpResponse resp, object? body)
     {
         var key = req.Path.Value.Split("/bundle/")[1];
         var bundle = bundleLoader.GetBundle(key);

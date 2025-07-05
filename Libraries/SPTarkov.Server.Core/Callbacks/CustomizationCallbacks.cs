@@ -1,5 +1,6 @@
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Controllers;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Eft.Customization;
 using SPTarkov.Server.Core.Models.Eft.ItemEvent;
@@ -22,7 +23,7 @@ public class CustomizationCallbacks(
     public ValueTask<string> GetCustomisationUnlocks(
         string url,
         EmptyRequestData _,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
@@ -34,7 +35,7 @@ public class CustomizationCallbacks(
     ///     Handle client/trading/customization
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetTraderSuits(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetTraderSuits(string url, EmptyRequestData _, MongoId sessionID)
     {
         var splitUrl = url.Split('/');
         var traderId = splitUrl[^3];
@@ -51,7 +52,7 @@ public class CustomizationCallbacks(
     public ItemEventRouterResponse BuyCustomisation(
         PmcData pmcData,
         BuyClothingRequestData request,
-        string sessionID
+        MongoId sessionID
     )
     {
         return _customizationController.BuyCustomisation(pmcData, request, sessionID);
@@ -64,7 +65,7 @@ public class CustomizationCallbacks(
     public ValueTask<string> GetHideoutCustomisation(
         string url,
         EmptyRequestData _,
-        string sessionID
+        MongoId sessionID
     )
     {
         return new ValueTask<string>(
@@ -76,7 +77,7 @@ public class CustomizationCallbacks(
     ///     Handle client/customization/storage
     /// </summary>
     /// <returns></returns>
-    public ValueTask<string> GetStorage(string url, EmptyRequestData _, string sessionID)
+    public ValueTask<string> GetStorage(string url, EmptyRequestData _, MongoId sessionID)
     {
         return new ValueTask<string>(
             _httpResponseUtil.GetBody(_customizationController.GetCustomisationStorage(sessionID))
@@ -90,7 +91,7 @@ public class CustomizationCallbacks(
     public ItemEventRouterResponse SetCustomisation(
         PmcData pmcData,
         CustomizationSetRequest request,
-        string sessionID
+        MongoId sessionID
     )
     {
         return _customizationController.SetCustomisation(sessionID, request, pmcData);

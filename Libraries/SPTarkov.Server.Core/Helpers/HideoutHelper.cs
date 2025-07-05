@@ -812,7 +812,7 @@ public class HideoutHelper(
         }
 
         var modifiedProductionTime = recipe.ProductionTime - timeReductionSeconds;
-        if (modifiedProductionTime > 0 && _profileHelper.IsDeveloperAccount(pmcData.Id))
+        if (modifiedProductionTime > 0 && _profileHelper.IsDeveloperAccount(pmcData.Id.Value))
         {
             modifiedProductionTime = 40;
         }

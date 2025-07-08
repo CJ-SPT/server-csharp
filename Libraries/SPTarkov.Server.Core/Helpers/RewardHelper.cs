@@ -107,7 +107,21 @@ public class RewardHelper(
                     AddAchievementToProfile(fullProfile, reward.Target);
                     break;
                 case RewardType.StashRows:
-                    profileHelper.AddStashRowsBonusToProfile(sessionId.Value, (int)reward.Value); // Add specified stash rows from reward - requires client restart
+                    var bonusId = profileHelper.AddStashRowsBonusToProfile(
+                        sessionId.Value,
+                        (int)reward.Value
+                    ); // Add specified stash rows from reward - requires client restart
+
+                    notificationSendHelper.SendMessage(
+                        sessionId.Value,
+                        new WsStashRowsChanged()
+                        {
+                            EventIdentifier = new MongoId(),
+                            EventType = NotificationEventType.StashRows,
+                            Changes = new Dictionary<string, double?> { { bonusId, reward.Value } },
+                        }
+                    );
+
                     break;
                 case RewardType.ProductionScheme:
                     FindAndAddHideoutProductionIdToProfile(

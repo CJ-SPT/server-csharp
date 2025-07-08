@@ -569,21 +569,26 @@ public class ProfileHelper(
     /// </summary>
     /// <param name="sessionId">Profile id to give rows to</param>
     /// <param name="rowsToAdd">How many rows to give profile</param>
-    public void AddStashRowsBonusToProfile(MongoId sessionId, int rowsToAdd)
+    /// <returns>The stash rows bonus id, this is needed for ws notification if we send one</returns>
+    public MongoId? AddStashRowsBonusToProfile(MongoId sessionId, int rowsToAdd)
     {
         var profile = GetPmcProfile(sessionId);
         if (profile?.Bonuses is null)
         {
             // Something is very wrong with profile to lack bonuses array, likely broken profile, exit early
-            return;
+            return null;
         }
-        var existingBonus = profile?.Bonuses.FirstOrDefault(b => b.Type == BonusType.StashRows);
+
+        var existingBonus = profile.Bonuses.FirstOrDefault(b => b.Type == BonusType.StashRows);
+
+        var bonusId = existingBonus?.Id;
         if (existingBonus is null)
         {
-            profile!.Bonuses.Add(
+            bonusId = new MongoId();
+            profile.Bonuses.Add(
                 new Bonus
                 {
-                    Id = new MongoId(),
+                    Id = bonusId.Value,
                     Value = rowsToAdd,
                     Type = BonusType.StashRows,
                     IsPassive = true,
@@ -596,6 +601,8 @@ public class ProfileHelper(
         {
             existingBonus.Value += rowsToAdd;
         }
+
+        return bonusId!.Value;
     }
 
     public bool HasAccessToRepeatableFreeRefreshSystem(PmcData pmcProfile)

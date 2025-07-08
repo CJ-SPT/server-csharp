@@ -65,7 +65,7 @@ public class GiveMeSpaceMessageHandler(
 
             notificationSendHelper.SendMessage(
                 sessionId,
-                new WsStashRowsChanged
+                new WsProfileChangeEvent
                 {
                     EventIdentifier = new MongoId(),
                     EventType = NotificationEventType.StashRows,

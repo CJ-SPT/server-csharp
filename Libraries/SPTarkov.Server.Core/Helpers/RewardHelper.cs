@@ -114,7 +114,7 @@ public class RewardHelper(
 
                     notificationSendHelper.SendMessage(
                         sessionId.Value,
-                        new WsStashRowsChanged()
+                        new WsProfileChangeEvent
                         {
                             EventIdentifier = new MongoId(),
                             EventType = NotificationEventType.StashRows,

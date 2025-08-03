@@ -22,7 +22,7 @@ public class HttpServer(
 {
     protected readonly HttpConfig HttpConfig = configServer.GetConfig<HttpConfig>();
 
-    public async Task HandleRequest(HttpContext context)
+    public async Task HandleRequest(HttpContext context, RequestDelegate next)
     {
         if (context.WebSockets.IsWebSocketRequest)
         {
@@ -44,6 +44,13 @@ public class HttpServer(
         if (HttpConfig.LogRequests)
         {
             LogRequest(context, realIp, IsPrivateOrLocalAddress(realIp));
+        }
+
+        // If the path starts with /pages, let it through to Razor Pages
+        if (context.Request.Path.StartsWithSegments("/pages"))
+        {
+            await next(context);
+            return;
         }
 
         try

@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+using SPTarkov.Common.Extensions;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Spt.Config;
@@ -24,7 +26,7 @@ public class HttpServer(
 
     public async Task HandleRequest(HttpContext context, RequestDelegate next)
     {
-        if (context.WebSockets.IsWebSocketRequest)
+        if (context.WebSockets.IsWebSocketRequest && !IsBlazorRequest(context))
         {
             await webSocketServer.OnConnection(context);
             return;
@@ -46,8 +48,8 @@ public class HttpServer(
             LogRequest(context, realIp, IsPrivateOrLocalAddress(realIp));
         }
 
-        // If the path starts with /pages, let it through to Razor Pages
-        if (context.Request.Path.StartsWithSegments("/pages"))
+        // If the request is linked to blazor, let it continue
+        if (IsBlazorRequest(context))
         {
             await next(context);
             return;
@@ -91,6 +93,33 @@ public class HttpServer(
         {
             logger.Info(serverLocalisationService.GetText("client_request_ip", new { ip = clientIp, url = context.Request.Path.Value }));
         }
+    }
+
+    protected bool IsBlazorRequest(HttpContext context)
+    {
+        if (
+            context.Request.Path.StartsWithSegments("/pages")
+            || context.Request.Path.StartsWithSegments("/_blazor")
+            || context.Request.Path.StartsWithSegments("/_framework")
+        )
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected static string GetClientIp(HttpContext context, StringValues? realIp)
+    {
+        if (realIp.HasValue)
+        {
+            return realIp.Value.First();
+        }
+
+        var forwardedFor = context.GetHeaderIfExists("x-forwarded-for");
+        return forwardedFor.HasValue
+            ? forwardedFor.Value.First()!.Split(",")[0].Trim()
+            : context.Connection.RemoteIpAddress!.ToString().Split(":").Last();
     }
 
     /// <summary>
